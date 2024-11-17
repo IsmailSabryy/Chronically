@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 const LoginScreen: React.FC = () => {
   const router = useRouter();
@@ -17,7 +18,7 @@ const LoginScreen: React.FC = () => {
     }
 
     setLoading(true);
-    setErrorMessage(''); 
+    setErrorMessage('');
     setSuccessMessage('');
 
     try {
@@ -34,7 +35,7 @@ const LoginScreen: React.FC = () => {
       if (data.status === 'Success') {
         setSuccessMessage('Login successful');
         setTimeout(() => {
-          router.push('/home'); 
+          router.push('/home');
         }, 1000);
       } else if (data.status === 'Error') {
         setErrorMessage('Invalid username or password');
@@ -48,18 +49,23 @@ const LoginScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
+      <TouchableOpacity style={styles.backIcon} onPress={() => router.back()}>
+        <Icon name="arrow-back" size={30} color="white" />
+      </TouchableOpacity>
+
+      <Text style={styles.titleLine1}>Login</Text>
+      <Text style={styles.titleLine2}>to enter our news stream</Text>
       <TextInput
         style={styles.input}
         placeholder="Username"
-        placeholderTextColor="#aaa"
+        placeholderTextColor="white"
         value={username}
         onChangeText={setUsername}
       />
       <TextInput
         style={styles.input}
         placeholder="Password"
-        placeholderTextColor="#aaa"
+        placeholderTextColor="white"
         secureTextEntry
         value={password}
         onChangeText={setPassword}
@@ -72,7 +78,7 @@ const LoginScreen: React.FC = () => {
         {loading ? (
           <Text style={styles.buttonText}>Loading...</Text>
         ) : (
-          <Text style={styles.buttonText}>Login</Text>
+          <Text style={styles.buttonText}>Continue</Text>
         )}
       </TouchableOpacity>
       {errorMessage ? (
@@ -81,9 +87,12 @@ const LoginScreen: React.FC = () => {
       {successMessage ? (
         <Text style={styles.successMessage}>{successMessage}</Text>
       ) : null}
-      <TouchableOpacity onPress={() => router.push('/signup')}>
-        <Text style={styles.createAccountText}>Don't have an account? Create one</Text>
-      </TouchableOpacity>
+      <View style={styles.accountContainer}>
+        <Text style={styles.accountText}>Don't have an account?</Text>
+        <TouchableOpacity onPress={() => router.push('/signup')}>
+          <Text style={styles.createAccountText}>Create to enter the stream</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -96,34 +105,56 @@ const styles = StyleSheet.create({
     backgroundColor: '#8A7FDC',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 30,
+    position: 'relative',
   },
-  title: {
-    fontSize: 32,
+  backIcon: {
+    position: 'absolute',
+    top: 40,
+    left: 20,
+    zIndex: 10,
+  },
+  titleLine1: {
+    fontSize: 30,
     color: 'white',
     fontWeight: 'bold',
-    marginBottom: 40,
+  },
+  titleLine2: {
+    fontSize: 18,
+    color: 'white',
+    fontWeight: 'bold',
+    marginBottom: 30,
   },
   input: {
-    width: '100%',
+    width: '50%',
     height: 50,
     backgroundColor: '#F7B8D2',
     borderRadius: 25,
-    paddingLeft: 15,
+    paddingLeft: 20,
     marginBottom: 15,
     fontSize: 16,
     color: '#333',
   },
   loginButton: {
-    backgroundColor: '#8F80E0',
+    backgroundColor: '#FFF',
     paddingVertical: 12,
     paddingHorizontal: 50,
     borderRadius: 25,
-    marginBottom: 15,
+    marginBottom: 20,
   },
   buttonText: {
-    color: 'white',
+    color: '#8A7FDC',
     fontSize: 18,
+    fontWeight: 'bold',
+  },
+  accountContainer: {
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  accountText: {
+    color: 'white',
+    fontSize: 14,
+    marginBottom: 5,
     fontWeight: 'bold',
   },
   createAccountText: {
