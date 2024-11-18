@@ -35,7 +35,7 @@ const LoginScreen: React.FC = () => {
       if (data.status === 'Success') {
         setSuccessMessage('Login successful');
         setTimeout(() => {
-          router.push('/home');
+          router.push('/preferences');
         }, 1000);
       } else if (data.status === 'Error') {
         setErrorMessage('Invalid username or password');

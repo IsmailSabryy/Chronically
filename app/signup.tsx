@@ -66,7 +66,7 @@ const SignUpScreen: React.FC = () => {
       if (data.status === 'Success') {
         setSuccessMessage(data.message);
         setTimeout(() => {
-          router.push('/login');
+          router.push('/preferences');
         }, 1000);
       } else if (data.status === 'Error') {
         setErrorMessage(data.message || 'An error occurred. Please try again.');
