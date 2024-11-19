@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, FlatList } from 'react-native';
 import { useRouter } from 'expo-router';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 const HomePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('My News');
@@ -82,7 +83,7 @@ const HomePage: React.FC = () => {
           ...(tweetsData.data || []).map((item: any) => ({ type: 'tweet', ...item })),
         ];
 
-        setArticlesAndTweets(combinedContent.sort(() => Math.random() - 0.5)); // Shuffle content
+        setArticlesAndTweets(combinedContent); // Maintain original order
       } else {
         setArticlesAndTweets([]);
       }
@@ -104,7 +105,7 @@ const HomePage: React.FC = () => {
   };
 
   const handleCategorySelect = (category: string) => {
-    setIsSeeAll(false); // Reset "See All" when selecting a category
+    setIsSeeAll(false);
     setSelectedCategory(category);
     fetchContent(category);
   };
@@ -115,48 +116,73 @@ const HomePage: React.FC = () => {
       fetchContent(selectedCategory);
     }
   };
-
+  const formatToUTCT = (isoDate: string) => {
+    const date = new Date(isoDate); // Convert ISO date string to Date object
+    const hours = String(date.getUTCHours()).padStart(2, '0'); // Get UTC hours with leading zero
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0'); // Get UTC minutes with leading zero
+    const day = String(date.getUTCDate()).padStart(2, '0'); // Get UTC day with leading zero
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0'); // Get UTC month (0-indexed) with leading zero
+    const year = date.getUTCFullYear(); // Get UTC year
+  
+    return `${hours}:${minutes} ${day}-${month}-${year}`; // Return formatted string
+  };
+  const formatToUTCA = (isoDate: string, isTimeIncluded: boolean = true) => {
+    const date = new Date(isoDate); // Convert ISO date string to Date object
+    const day = String(date.getUTCDate()).padStart(2, '0'); // Get UTC day with leading zero
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0'); // Get UTC month with leading zero
+    const year = date.getUTCFullYear(); // Get UTC year
+  
+    return `${day}-${month}-${year}`; // Return formatted string without time
+  };
+  
+  
   const renderContentCard = ({ item }: { item: any }) => {
     if (item.type === 'article') {
       return (
         <View style={styles.articleCard}>
           <Text style={styles.articleTitle}>{item.headline}</Text>
           <Text style={styles.articleAuthor}>{item.authors}</Text>
-          <Text style={styles.articleDate}>{item.date}</Text>
-          <Text style={styles.articleDescription}>{item.short_description}</Text>
+          <Text style={styles.articleDate}>{formatToUTCA(item.date)}</Text> {/* Format date */}
         </View>
       );
     } else if (item.type === 'tweet') {
       return (
         <View style={styles.tweetCard}>
-          <Text style={styles.tweetUsername}>{item.Username}</Text>
           <Text style={styles.tweetText}>{item.Tweet}</Text>
-          <Text style={styles.tweetDate}>{item.Created_At}</Text>
+          <Text style={styles.tweetUsername}>{item.Username}</Text>
+          <Text style={styles.tweetDate}>{formatToUTCT(item.Created_At)}</Text> {/* Format date */}
         </View>
       );
     }
     return null;
   };
+  
+  
 
   return (
     <View style={styles.container}>
-      {/* Header Tabs */}
+      {/* Header with Centered Tabs */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'My News' && styles.activeTabButton]}
-          onPress={() => handleTabChange('My News')}
-        >
-          <Text style={[styles.tabText, activeTab === 'My News' && styles.activeTabText]}>
-            My News
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'Trending' && styles.activeTabButton]}
-          onPress={() => handleTabChange('Trending')}
-        >
-          <Text style={[styles.tabText, activeTab === 'Trending' && styles.activeTabText]}>
-            Trending
-          </Text>
+        <View style={styles.tabsContainer}>
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'My News' && styles.activeTabButton]}
+            onPress={() => handleTabChange('My News')}
+          >
+            <Text style={[styles.tabText, activeTab === 'My News' && styles.activeTabText]}>
+              My News
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'Trending' && styles.activeTabButton]}
+            onPress={() => handleTabChange('Trending')}
+          >
+            <Text style={[styles.tabText, activeTab === 'Trending' && styles.activeTabText]}>
+              Trending
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <TouchableOpacity onPress={() => router.push('/settings')} style={styles.settingsIcon}>
+          <Icon name="settings-outline" size={24} color="#888" />
         </TouchableOpacity>
       </View>
 
@@ -217,14 +243,22 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
     marginTop: 40,
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
+    paddingBottom: 10,
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    flex: 1,
   },
   tabButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    marginHorizontal: 20,
+    paddingBottom: 5,
   },
   tabText: {
     fontSize: 18,
@@ -237,6 +271,10 @@ const styles = StyleSheet.create({
   activeTabText: {
     color: '#333',
     fontWeight: 'bold',
+  },
+  settingsIcon: {
+    position: 'absolute',
+    right: 20,
   },
   filterContainer: {
     marginVertical: 10,
@@ -302,13 +340,13 @@ const styles = StyleSheet.create({
   },
   tweetUsername: {
     fontSize: 14,
-    fontWeight: 'bold',
     color: '#333333',
   },
   tweetText: {
     fontSize: 14,
     color: '#555555',
     marginTop: 5,
+    fontWeight: 'bold',
   },
   tweetDate: {
     fontSize: 12,

@@ -64,7 +64,6 @@ const SignUpScreen: React.FC = () => {
       const data = await response.json();
   
       if (data.status === 'Success') {
-        // Set username on the server
         await fetch('http://localhost:3000/set-username', {
           method: 'POST',
           headers: {

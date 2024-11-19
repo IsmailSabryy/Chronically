@@ -33,7 +33,6 @@ const LoginScreen: React.FC = () => {
       const loginData = await loginResponse.json();
   
       if (loginData.status === 'Success') {
-        // Call the /set-username endpoint
         const setUsernameResponse = await fetch('http://localhost:3000/set-username', {
           method: 'POST',
           headers: {
@@ -53,7 +52,11 @@ const LoginScreen: React.FC = () => {
           setErrorMessage('Login successful but failed to set username');
         }
       } else if (loginData.status === 'Error') {
-        setErrorMessage('Invalid username or password');
+        if (loginData.message === 'Account is deactivated') {
+          setErrorMessage('Your account is deactivated. Please contact support.');
+        } else {
+          setErrorMessage('Invalid username or password');
+        }
       }
     } catch (error) {
       setErrorMessage('An error occurred. Please try again.');

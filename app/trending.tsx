@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 const TrendingScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Trending'); // Tracks the active tab
@@ -41,12 +42,21 @@ const TrendingScreen: React.FC = () => {
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
   };
-
+  const formatToUTCT = (isoDate: string) => {
+    const date = new Date(isoDate); // Convert ISO date string to Date object
+    const hours = String(date.getUTCHours()).padStart(2, '0'); // Get UTC hours with leading zero
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0'); // Get UTC minutes with leading zero
+    const day = String(date.getUTCDate()).padStart(2, '0'); // Get UTC day with leading zero
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0'); // Get UTC month (0-indexed) with leading zero
+    const year = date.getUTCFullYear(); // Get UTC year
+  
+    return `${hours}:${minutes} ${day}-${month}-${year}`; // Return formatted string
+  };
   const renderContentCard = ({ item }: { item: any }) => (
     <View style={styles.contentCard}>
       <Text style={styles.contentTitle}>{item.Tweet || item.headline}</Text>
       <Text style={styles.contentAuthor}>{item.Username || item.authors}</Text>
-      <Text style={styles.contentDate}>{item.Created_At || item.date}</Text>
+      <Text style={styles.contentDate}>{formatToUTCT(item.Created_At)}</Text> {/* Format date */}
       <Text style={styles.contentDescription}>{item.Explanation || item.short_description}</Text>
     </View>
   );
@@ -70,6 +80,9 @@ const TrendingScreen: React.FC = () => {
           <Text style={[styles.tabText, activeTab === 'Trending' && styles.activeTabText]}>
             Trending
           </Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push('/settings')} style={styles.settingsIcon}>
+          <Icon name="settings-outline" size={24} color="#888" />
         </TouchableOpacity>
       </View>
 
@@ -107,6 +120,10 @@ const styles = StyleSheet.create({
   tabButton: {
     paddingVertical: 10,
     paddingHorizontal: 20,
+  },
+  settingsIcon: {
+    position: 'absolute',
+    right: 20,
   },
   tabText: {
     fontSize: 18,

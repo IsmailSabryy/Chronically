@@ -107,13 +107,23 @@ app.post('/get-alltweets', (req, res) => {
 });
 app.post('/check-login', (req, res) => {
     const { username, password } = req.body;
+
     const query = `
-        SELECT username
+        SELECT username, deactivated
         FROM Users
         WHERE username = ? AND password = ?;
     `;
+
     pool.query(query, [username, password], (err, results) => {
+        if (err) {
+            return res.status(500).json({ status: 'Error', message: 'Internal server error' });
+        }
+        
         if (results.length > 0) {
+            const user = results[0];
+            if (user.deactivated === 1) {
+                return res.status(403).json({ status: 'Error', message: 'Account is deactivated' });
+            }
             return res.json({ status: 'Success', message: 'Login successful' });
         } else {
             return res.status(401).json({ status: 'Error', message: 'Invalid username or password' });
@@ -231,6 +241,47 @@ app.get('/get_trending_tweets', (req, res) => {
             return res.json({ status: 'Success', data: results });
         } else {
             return res.json({ status: 'No tweets found' });
+        }
+    });
+});
+app.post('/deactivate-user', (req, res) => {
+    const { username } = req.body;
+
+    const query = `
+        UPDATE Users
+        SET deactivated = 1
+        WHERE username = ?;
+    `;
+
+    pool.query(query, [username], (err, results) => {
+        if (err) {
+            return res.status(500).json({ status: 'Error', message: 'Internal server error' });
+        }
+
+        if (results.affectedRows > 0) {
+            return res.json({ status: 'Success', message: `User ${username} has been deactivated` });
+        } else {
+            return res.status(404).json({ status: 'Error', message: 'User not found' });
+        }
+    });
+});
+app.post('/delete-user', (req, res) => {
+    const { username } = req.body;
+
+    const query = `
+        DELETE FROM Users
+        WHERE username = ?;
+    `;
+
+    pool.query(query, [username], (err, results) => {
+        if (err) {
+            return res.status(500).json({ status: 'Error', message: 'Internal server error' });
+        }
+
+        if (results.affectedRows > 0) {
+            return res.json({ status: 'Success', message: `User ${username} has been deleted.` });
+        } else {
+            return res.status(404).json({ status: 'Error', message: `User ${username} not found.` });
         }
     });
 });
