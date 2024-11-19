@@ -67,7 +67,7 @@ export default function PreferencesScreen() {
 
         const data = await response.json();
         if (response.status === 409) {
-          console.warn(data.message); // Log duplicate entry warnings
+          console.warn(data.message);
         } else if (response.status !== 200) {
           console.error('Error adding preference:', data.error);
         }
@@ -76,7 +76,7 @@ export default function PreferencesScreen() {
       await Promise.all(addPreferencePromises);
 
       Alert.alert('Success', 'Your preferences have been saved.');
-      router.push('/mynews'); // Navigate to the Trending page
+      router.push('/mynews'); 
     } catch (error) {
       console.error('Error handling view click:', error);
       Alert.alert('Error', 'Failed to save preferences.');

@@ -4,13 +4,12 @@ import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 const TrendingScreen: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('Trending'); // Tracks the active tab
+  const [activeTab, setActiveTab] = useState('Trending');
   const [content, setContent] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const router = useRouter();
 
-  // Fetch trending content from the API
   const fetchTrendingContent = async () => {
     setLoading(true);
     setErrorMessage('');
@@ -18,7 +17,7 @@ const TrendingScreen: React.FC = () => {
       const response = await fetch('http://localhost:3000/get_trending_tweets');
       const data = await response.json();
       if (data.status === 'Success') {
-        setContent(data.data); // Preserve the order from SQL
+        setContent(data.data);
       } else {
         setContent([]);
         setErrorMessage('No trending content found.');
@@ -35,7 +34,7 @@ const TrendingScreen: React.FC = () => {
     if (activeTab === 'Trending') {
       fetchTrendingContent();
     } else if (activeTab === 'My News') {
-      router.push('/mynews'); // Switch to My News screen
+      router.push('/mynews'); 
     }
   }, [activeTab]);
 
@@ -43,14 +42,14 @@ const TrendingScreen: React.FC = () => {
     setActiveTab(tab);
   };
   const formatToUTCT = (isoDate: string) => {
-    const date = new Date(isoDate); // Convert ISO date string to Date object
-    const hours = String(date.getUTCHours()).padStart(2, '0'); // Get UTC hours with leading zero
-    const minutes = String(date.getUTCMinutes()).padStart(2, '0'); // Get UTC minutes with leading zero
-    const day = String(date.getUTCDate()).padStart(2, '0'); // Get UTC day with leading zero
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0'); // Get UTC month (0-indexed) with leading zero
-    const year = date.getUTCFullYear(); // Get UTC year
+    const date = new Date(isoDate);
+    const hours = String(date.getUTCHours()).padStart(2, '0'); 
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0'); 
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const year = date.getUTCFullYear();
   
-    return `${hours}:${minutes} ${day}-${month}-${year}`; // Return formatted string
+    return `${hours}:${minutes} ${day}-${month}-${year}`;
   };
   const renderContentCard = ({ item }: { item: any }) => (
     <View style={styles.contentCard}>
@@ -63,7 +62,7 @@ const TrendingScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header with Tabs */}
+ 
       <View style={styles.header}>
         <TouchableOpacity
           style={[styles.tabButton, activeTab === 'My News' && styles.activeTabButton]}
@@ -86,7 +85,7 @@ const TrendingScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Content */}
+ 
       {loading ? (
         <Text style={styles.loadingText}>Loading...</Text>
       ) : errorMessage ? (

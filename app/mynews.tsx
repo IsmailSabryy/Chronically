@@ -8,7 +8,7 @@ const HomePage: React.FC = () => {
   const [preferences, setPreferences] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [articlesAndTweets, setArticlesAndTweets] = useState<any[]>([]);
-  const [isSeeAll, setIsSeeAll] = useState(false); // Track if "See All" is selected
+  const [isSeeAll, setIsSeeAll] = useState(false); 
   const router = useRouter();
 
   const fetchUsername = async () => {
@@ -37,8 +37,8 @@ const HomePage: React.FC = () => {
       if (data.status === 'Success') {
         const fetchedPreferences = data.data.map((item: any) => item.preference);
         setPreferences(fetchedPreferences);
-        setSelectedCategory(fetchedPreferences[0]); // Default to the first preference
-        fetchContent(fetchedPreferences[0]); // Fetch articles and tweets for the default category
+        setSelectedCategory(fetchedPreferences[0]); 
+        fetchContent(fetchedPreferences[0]);
       } else {
         setPreferences([]);
       }
@@ -48,7 +48,7 @@ const HomePage: React.FC = () => {
     }
   };
 
-  // Fetch articles and tweets for a category
+
   const fetchContent = async (category: string) => {
     try {
       const [articlesResponse, tweetsResponse] = await Promise.all([
@@ -83,7 +83,7 @@ const HomePage: React.FC = () => {
           ...(tweetsData.data || []).map((item: any) => ({ type: 'tweet', ...item })),
         ];
 
-        setArticlesAndTweets(combinedContent); // Maintain original order
+        setArticlesAndTweets(combinedContent);
       } else {
         setArticlesAndTweets([]);
       }
@@ -117,22 +117,22 @@ const HomePage: React.FC = () => {
     }
   };
   const formatToUTCT = (isoDate: string) => {
-    const date = new Date(isoDate); // Convert ISO date string to Date object
-    const hours = String(date.getUTCHours()).padStart(2, '0'); // Get UTC hours with leading zero
-    const minutes = String(date.getUTCMinutes()).padStart(2, '0'); // Get UTC minutes with leading zero
-    const day = String(date.getUTCDate()).padStart(2, '0'); // Get UTC day with leading zero
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0'); // Get UTC month (0-indexed) with leading zero
-    const year = date.getUTCFullYear(); // Get UTC year
+    const date = new Date(isoDate);
+    const hours = String(date.getUTCHours()).padStart(2, '0'); 
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0'); 
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0'); 
+    const year = date.getUTCFullYear(); 
   
-    return `${hours}:${minutes} ${day}-${month}-${year}`; // Return formatted string
+    return `${hours}:${minutes} ${day}-${month}-${year}`; 
   };
   const formatToUTCA = (isoDate: string, isTimeIncluded: boolean = true) => {
-    const date = new Date(isoDate); // Convert ISO date string to Date object
-    const day = String(date.getUTCDate()).padStart(2, '0'); // Get UTC day with leading zero
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0'); // Get UTC month with leading zero
-    const year = date.getUTCFullYear(); // Get UTC year
+    const date = new Date(isoDate); 
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0'); 
+    const year = date.getUTCFullYear(); 
   
-    return `${day}-${month}-${year}`; // Return formatted string without time
+    return `${day}-${month}-${year}`; 
   };
   
   
@@ -142,7 +142,7 @@ const HomePage: React.FC = () => {
         <View style={styles.articleCard}>
           <Text style={styles.articleTitle}>{item.headline}</Text>
           <Text style={styles.articleAuthor}>{item.authors}</Text>
-          <Text style={styles.articleDate}>{formatToUTCA(item.date)}</Text> {/* Format date */}
+          <Text style={styles.articleDate}>{formatToUTCA(item.date)}</Text> 
         </View>
       );
     } else if (item.type === 'tweet') {
@@ -150,7 +150,7 @@ const HomePage: React.FC = () => {
         <View style={styles.tweetCard}>
           <Text style={styles.tweetText}>{item.Tweet}</Text>
           <Text style={styles.tweetUsername}>{item.Username}</Text>
-          <Text style={styles.tweetDate}>{formatToUTCT(item.Created_At)}</Text> {/* Format date */}
+          <Text style={styles.tweetDate}>{formatToUTCT(item.Created_At)}</Text>
         </View>
       );
     }
@@ -161,7 +161,6 @@ const HomePage: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header with Centered Tabs */}
       <View style={styles.header}>
         <View style={styles.tabsContainer}>
           <TouchableOpacity
@@ -186,7 +185,6 @@ const HomePage: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Category Filters */}
       <View style={styles.filterContainer}>
         <ScrollView
           horizontal
@@ -225,7 +223,6 @@ const HomePage: React.FC = () => {
         </ScrollView>
       </View>
 
-      {/* Articles and Tweets */}
       <FlatList
         data={articlesAndTweets}
         renderItem={renderContentCard}

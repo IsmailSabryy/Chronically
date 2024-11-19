@@ -11,7 +11,7 @@ const SettingsScreen: React.FC = () => {
   useEffect(() => {
     const fetchUsername = async () => {
       try {
-        const response = await fetch('http://localhost:3000/get-username'); // Adjust the URL if necessary
+        const response = await fetch('http://localhost:3000/get-username'); 
         const data = await response.json();
         if (data.username) {
           setUsername(data.username);
@@ -133,12 +133,12 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flex: 1,
     backgroundColor: '#8A7FDC',
-    paddingHorizontal: 0, // Remove padding to allow buttons to span full width
+    paddingHorizontal: 0, 
     justifyContent: 'center',
     alignItems: 'center',
   },
   scrollContent: {
-    width: '100%', // Ensure the ScrollView spans the full width
+    width: '100%', 
   },
   button: {
     backgroundColor: '#E57373',
