@@ -1,17 +1,45 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, ScrollView, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
 
 type IndustryType = string;
 
 export default function PreferencesScreen() {
   const [selectedOptions, setSelectedOptions] = useState<IndustryType[]>([]);
+  const [username, setUsername] = useState<string>('');
+  const router = useRouter(); 
 
-  const industries: IndustryType[] = [
-    'Breaking News', 'Science', 'Politics', 'Business', 'Economics',
-    'Health', 'Stocks', 'Weather', 'Arts', 'Culture',
-    'Film', 'Others', 'Technology', 'Sports', 'Education',
-    'Environment', 'History', 'Fashion', 'Travel', 'Literature','Football'
+  const industries: string[] = [
+    'BREAKING NEWS','WORLDPOST', 'WORLD NEWS',  'WELLNESS', 'Football', 'Formula1',
+    'POLITICS', 'U.S. NEWS', 'TRAVEL', 'THE WORLDPOST', 'TECH',   'Gaming', 'Health', 'Travel',
+    'TASTE', 'STYLE & BEAUTY', 'STYLE', 'SPORTS', 'SCIENCE', 
+    'RELIGION',  'PARENTS', 'PARENTING', 'MONEY', 'WEDDINGS',
+    'MEDIA', 'LATINO VOICES', 'IMPACT', 'HOME & LIVING', 
+    'HEALTHY LIVING', 'GREEN', 'GOOD NEWS', 'FOOD & DRINK', 'FIFTY', 
+    'ENVIRONMENT', 'ENTERTAINMENT', 'EDUCATION', 'DIVORCE', 
+    'CULTURE & ARTS', 'CRIME', 'COMEDY', 'COLLEGE', 'BUSINESS', 
+    'BLACK VOICES', 'ARTS',   'WOMEN'
+
   ];
+  
+
+  useEffect(() => {
+    const fetchUsername = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/get-username'); 
+        const data = await response.json();
+        if (data.username) {
+          setUsername(data.username); 
+        } else {
+          setUsername('Guest');
+        }
+      } catch (error) {
+        console.error('Error fetching username:', error);
+        setUsername('Guest');
+      }
+    };
+    fetchUsername();
+  }, []);
 
   const toggleOption = (option: IndustryType) => {
     setSelectedOptions((prevSelected) =>
@@ -19,6 +47,40 @@ export default function PreferencesScreen() {
         ? prevSelected.filter((item) => item !== option)
         : [...prevSelected, option]
     );
+  };
+
+  const handleViewClick = async () => {
+    if (selectedOptions.length === 0) {
+      Alert.alert('No Preferences', 'Please select at least one preference.');
+      return;
+    }
+
+    try {
+      const addPreferencePromises = selectedOptions.map(async (preference) => {
+        const response = await fetch('http://localhost:3000/add-preference', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ username, preference }),
+        });
+
+        const data = await response.json();
+        if (response.status === 409) {
+          console.warn(data.message); // Log duplicate entry warnings
+        } else if (response.status !== 200) {
+          console.error('Error adding preference:', data.error);
+        }
+      });
+
+      await Promise.all(addPreferencePromises);
+
+      Alert.alert('Success', 'Your preferences have been saved.');
+      router.push('/mynews'); // Navigate to the Trending page
+    } catch (error) {
+      console.error('Error handling view click:', error);
+      Alert.alert('Error', 'Failed to save preferences.');
+    }
   };
 
   const renderOption = ({ item }: { item: IndustryType }) => {
@@ -37,7 +99,7 @@ export default function PreferencesScreen() {
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
-        <Text style={styles.heading}>Hello ismailasabryy,</Text>
+        <Text style={styles.heading}>Hi {username},</Text>
         <Text style={styles.subHeading}>What are your preferences from X and other News Sources?</Text>
 
         {/* Industries Section */}
@@ -48,13 +110,13 @@ export default function PreferencesScreen() {
             keyExtractor={(item, index) => index.toString()}
             renderItem={renderOption}
             numColumns={3}
-            columnWrapperStyle={styles.rowStyle} 
-            scrollEnabled={false} 
+            columnWrapperStyle={styles.rowStyle}
+            scrollEnabled={false}
           />
         </View>
 
         {/* VIEW Button */}
-        <TouchableOpacity style={[styles.optionButton, styles.viewButton]}>
+        <TouchableOpacity style={[styles.optionButton, styles.viewButton]} onPress={handleViewClick}>
           <Text style={[styles.optionText, styles.viewButtonText]}>VIEW</Text>
         </TouchableOpacity>
       </View>
@@ -93,7 +155,7 @@ const styles = StyleSheet.create({
   },
   rowStyle: {
     justifyContent: 'space-between',
-    marginBottom: 10, 
+    marginBottom: 10,
   },
   optionButton: {
     backgroundColor: '#FFFFFF',
@@ -124,7 +186,7 @@ const styles = StyleSheet.create({
     borderColor: '#8A2BE2',
     marginTop: 20,
     alignSelf: 'center',
-    width: '60%', 
+    width: '60%',
     backgroundColor: '#8A2BE2',
   },
   viewButtonText: {

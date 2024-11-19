@@ -32,22 +32,22 @@ const SignUpScreen: React.FC = () => {
       setErrorMessage('Please fill in all fields');
       return;
     }
-
+  
     if (password !== confirmPassword) {
       setErrorMessage('Passwords do not match');
       return;
     }
-
+  
     const age = calculateAge(selectedYear, selectedMonth, selectedDay);
     if (age < 13) {
       setErrorMessage('You must be at least 13 years old to sign up');
       return;
     }
-
+  
     setLoading(true);
     setErrorMessage('');
     setSuccessMessage('');
-
+  
     try {
       const response = await fetch('http://localhost:3000/sign-up', {
         method: 'POST',
@@ -60,10 +60,19 @@ const SignUpScreen: React.FC = () => {
           dob: `${selectedYear}-${selectedMonth}-${selectedDay}`,
         }),
       });
-
+  
       const data = await response.json();
-
+  
       if (data.status === 'Success') {
+        // Set username on the server
+        await fetch('http://localhost:3000/set-username', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ username }),
+        });
+  
         setSuccessMessage(data.message);
         setTimeout(() => {
           router.push('/preferences');

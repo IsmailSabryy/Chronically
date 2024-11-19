@@ -16,28 +16,43 @@ const LoginScreen: React.FC = () => {
       setErrorMessage('Please enter both username and password');
       return;
     }
-
+  
     setLoading(true);
     setErrorMessage('');
     setSuccessMessage('');
-
+  
     try {
-      const response = await fetch('http://localhost:3000/check-login', {
+      const loginResponse = await fetch('http://localhost:3000/check-login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ username, password }),
       });
-
-      const data = await response.json();
-
-      if (data.status === 'Success') {
-        setSuccessMessage('Login successful');
-        setTimeout(() => {
-          router.push('/preferences');
-        }, 1000);
-      } else if (data.status === 'Error') {
+  
+      const loginData = await loginResponse.json();
+  
+      if (loginData.status === 'Success') {
+        // Call the /set-username endpoint
+        const setUsernameResponse = await fetch('http://localhost:3000/set-username', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ username }),
+        });
+  
+        const setUsernameData = await setUsernameResponse.json();
+  
+        if (setUsernameData.status === 'Username set successfully') {
+          setSuccessMessage('Login successful');
+          setTimeout(() => {
+            router.push('/mynews');
+          }, 1000);
+        } else {
+          setErrorMessage('Login successful but failed to set username');
+        }
+      } else if (loginData.status === 'Error') {
         setErrorMessage('Invalid username or password');
       }
     } catch (error) {
@@ -46,6 +61,7 @@ const LoginScreen: React.FC = () => {
       setLoading(false);
     }
   };
+  
 
   return (
     <View style={styles.container}>

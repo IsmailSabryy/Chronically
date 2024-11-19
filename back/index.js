@@ -40,6 +40,24 @@ app.post('/get-articles', (req, res) => {
         }
     });
 });
+app.post('/get-allarticles', (req, res) => {
+    const { category } = req.body;
+    const query = `
+        SELECT link, headline, category, short_description, authors, date, clusterID
+        FROM Articles
+        WHERE category LIKE ?
+    `;
+    pool.query(query, [`%${category}%`], (fetchError, results) => {
+        if (fetchError) {
+            return res.status(500).json({ status: 'Error', error: fetchError.message });
+        }
+        if (results.length > 0) {
+            return res.json({ status: 'Articles found', data: results });
+        } else {
+            return res.json({ status: 'No articles found' });
+        }
+    });
+});
 app.post('/get-tweets', (req, res) => {
     const { category } = req.body;
 
@@ -48,6 +66,29 @@ app.post('/get-tweets', (req, res) => {
         FROM Tweets
         WHERE categories LIKE ?
         LIMIT 100;
+    `;
+
+    const values = [`%${category || ''}%`];
+
+    pool.query(query, values, (err, results) => {
+        if (err) {
+            return res.status(500).json({ status: 'Error', error: err.message });
+        }
+
+        if (results.length > 0) {
+            return res.json({ status: 'Tweets found', data: results });
+        } else {
+            return res.json({ status: 'No tweets found' });
+        }
+    });
+});
+app.post('/get-alltweets', (req, res) => {
+    const { category } = req.body;
+
+    const query = `
+        SELECT Username, Tweet, Created_At, Retweets, Favorites, Tweet_Link, Media_URL, Explanation, categories
+        FROM Tweets
+        WHERE categories LIKE ?
     `;
 
     const values = [`%${category || ''}%`];
@@ -167,6 +208,31 @@ app.get('/get-tweet-link', (req, res) => {
     } else {
         return res.json({ status: 'Error', message: 'No tweet link set' });
     }
+});
+app.get('/get_trending_tweets', (req, res) => {
+    const query = `
+        WITH LatestDate AS (
+            SELECT DATE(MAX(Created_At)) AS max_date
+            FROM Tweets
+        )
+        SELECT Username, Tweet, Created_At, Retweets, Favorites, Tweet_Link, Media_URL, Explanation, categories
+        FROM Tweets
+        WHERE DATE(Created_At) >= (SELECT max_date FROM LatestDate) - INTERVAL 1 DAY
+        ORDER BY Favorites DESC
+        LIMIT 100;
+    `;
+
+    pool.query(query, (error, results) => {
+        if (error) {
+            return res.status(500).json({ status: 'Error', message: error.message });
+        }
+
+        if (results.length > 0) {
+            return res.json({ status: 'Success', data: results });
+        } else {
+            return res.json({ status: 'No tweets found' });
+        }
+    });
 });
 
 
