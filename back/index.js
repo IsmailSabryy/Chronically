@@ -24,7 +24,7 @@ const pool = mysql.createPool({
 app.post('/get-articles', (req, res) => {
     const { category } = req.body;
     const query = `
-        SELECT link, headline, category, short_description, authors, date, clusterID
+        SELECT id ,link, headline, category, short_description, authors, date, clusterID
         FROM Articles
         WHERE category LIKE ?
         LIMIT 1000;
@@ -43,7 +43,7 @@ app.post('/get-articles', (req, res) => {
 app.post('/get-allarticles', (req, res) => {
     const { category } = req.body;
     const query = `
-        SELECT link, headline, category, short_description, authors, date, clusterID
+        SELECT  id, link, headline, category, short_description, authors, date, clusterID
         FROM Articles
         WHERE category LIKE ?
     `;
@@ -62,7 +62,7 @@ app.post('/get-tweets', (req, res) => {
     const { category } = req.body;
 
     const query = `
-        SELECT Username, Tweet, Created_At, Retweets, Favorites, Tweet_Link, Media_URL, Explanation, categories
+        SELECT Username, Tweet, Created_At, Retweets, Favorites, Tweet_Link, Media_URL, Explanation, categories 
         FROM Tweets
         WHERE categories LIKE ?
         LIMIT 100;
@@ -282,6 +282,56 @@ app.post('/delete-user', (req, res) => {
             return res.json({ status: 'Success', message: `User ${username} has been deleted.` });
         } else {
             return res.status(404).json({ status: 'Error', message: `User ${username} not found.` });
+        }
+    });
+});
+app.post('/get-article-by-id', (req, res) => {
+    const { id } = req.body;
+
+    if (!id) {
+        return res.status(400).json({ status: 'Error', error: 'Article ID is required' });
+    }
+
+    const query = `
+        SELECT id, link, headline, category, short_description, authors, date, clusterID
+        FROM Articles
+        WHERE id = ?;
+    `;
+
+    pool.query(query, [id], (fetchError, results) => {
+        if (fetchError) {
+            return res.status(500).json({ status: 'Error', error: fetchError.message });
+        }
+
+        if (results.length > 0) {
+            return res.json({ status: 'Article found', data: results[0] });
+        } else {
+            return res.json({ status: 'No article found with the given ID' });
+        }
+    });
+});
+app.post('/get-tweet-by-link', (req, res) => {
+    const { link } = req.body;
+
+    if (!link) {
+        return res.status(400).json({ status: 'Error', error: 'Tweet link is required' });
+    }
+
+    const query = `
+        SELECT Username, Tweet, Created_At, Retweets, Favorites, Tweet_Link, Media_URL, Explanation, categories 
+        FROM Tweets
+        WHERE Tweet_Link = ?;
+    `;
+
+    pool.query(query, [link], (err, results) => {
+        if (err) {
+            return res.status(500).json({ status: 'Error', error: err.message });
+        }
+
+        if (results.length > 0) {
+            return res.json({ status: 'Tweet found', data: results[0] });
+        } else {
+            return res.json({ status: 'No tweet found with the given link' });
         }
     });
 });

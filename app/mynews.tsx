@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, FlatList } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, FlatList, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
 
@@ -8,7 +8,7 @@ const HomePage: React.FC = () => {
   const [preferences, setPreferences] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [articlesAndTweets, setArticlesAndTweets] = useState<any[]>([]);
-  const [isSeeAll, setIsSeeAll] = useState(false); 
+  const [isSeeAll, setIsSeeAll] = useState(false);
   const router = useRouter();
 
   const fetchUsername = async () => {
@@ -37,7 +37,7 @@ const HomePage: React.FC = () => {
       if (data.status === 'Success') {
         const fetchedPreferences = data.data.map((item: any) => item.preference);
         setPreferences(fetchedPreferences);
-        setSelectedCategory(fetchedPreferences[0]); 
+        setSelectedCategory(fetchedPreferences[0]);
         fetchContent(fetchedPreferences[0]);
       } else {
         setPreferences([]);
@@ -47,7 +47,6 @@ const HomePage: React.FC = () => {
       setPreferences([]);
     }
   };
-
 
   const fetchContent = async (category: string) => {
     try {
@@ -93,10 +92,6 @@ const HomePage: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    fetchUsername();
-  }, []);
-
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     if (tab === 'Trending') {
@@ -116,48 +111,71 @@ const HomePage: React.FC = () => {
       fetchContent(selectedCategory);
     }
   };
-  const formatToUTCT = (isoDate: string) => {
-    const date = new Date(isoDate);
-    const hours = String(date.getUTCHours()).padStart(2, '0'); 
-    const minutes = String(date.getUTCMinutes()).padStart(2, '0'); 
-    const day = String(date.getUTCDate()).padStart(2, '0');
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0'); 
-    const year = date.getUTCFullYear(); 
-  
-    return `${hours}:${minutes} ${day}-${month}-${year}`; 
+
+  const handleContentPress = async (item: any) => {
+    if (item.type === 'tweet') {
+      try {
+        const response = await fetch('http://localhost:3000/set-tweet-link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ link: item.Tweet_Link }),
+        });
+
+        const data = await response.json();
+        if (data.status === 'Success') {
+          router.push('/tweetpage');
+        } else {
+          Alert.alert('Error', 'Failed to set tweet link');
+        }
+      } catch (error) {
+        console.error('Error setting tweet link:', error);
+        Alert.alert('Error', 'Unable to set tweet link');
+      }
+    } else if (item.type === 'article') {
+      try {
+        const response = await fetch('http://localhost:3000/set-article-id', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: item.id }),
+        });
+
+        const data = await response.json();
+        if (data.status === 'Success') {
+          router.push('/articlepage');
+        } else {
+          Alert.alert('Error', 'Failed to set article ID');
+        }
+      } catch (error) {
+        console.error('Error setting article ID:', error);
+        Alert.alert('Error', 'Unable to set article ID');
+      }
+    }
   };
-  const formatToUTCA = (isoDate: string, isTimeIncluded: boolean = true) => {
-    const date = new Date(isoDate); 
-    const day = String(date.getUTCDate()).padStart(2, '0');
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0'); 
-    const year = date.getUTCFullYear(); 
-  
-    return `${day}-${month}-${year}`; 
-  };
-  
-  
+
+  useEffect(() => {
+    fetchUsername();
+  }, []);
+
   const renderContentCard = ({ item }: { item: any }) => {
     if (item.type === 'article') {
       return (
-        <View style={styles.articleCard}>
+        <TouchableOpacity style={styles.articleCard} onPress={() => handleContentPress(item)}>
           <Text style={styles.articleTitle}>{item.headline}</Text>
           <Text style={styles.articleAuthor}>{item.authors}</Text>
-          <Text style={styles.articleDate}>{formatToUTCA(item.date)}</Text> 
-        </View>
+          <Text style={styles.articleDate}>{item.date}</Text>
+        </TouchableOpacity>
       );
     } else if (item.type === 'tweet') {
       return (
-        <View style={styles.tweetCard}>
+        <TouchableOpacity style={styles.tweetCard} onPress={() => handleContentPress(item)}>
           <Text style={styles.tweetText}>{item.Tweet}</Text>
           <Text style={styles.tweetUsername}>{item.Username}</Text>
-          <Text style={styles.tweetDate}>{formatToUTCT(item.Created_At)}</Text>
-        </View>
+          <Text style={styles.tweetDate}>{item.Created_At}</Text>
+        </TouchableOpacity>
       );
     }
     return null;
   };
-  
-  
 
   return (
     <View style={styles.container}>
@@ -232,6 +250,9 @@ const HomePage: React.FC = () => {
     </View>
   );
 };
+
+export default HomePage;
+
 
 const styles = StyleSheet.create({
   container: {
@@ -351,4 +372,3 @@ const styles = StyleSheet.create({
   },
 });
 
-export default HomePage;

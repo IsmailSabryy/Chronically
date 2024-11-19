@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
 
@@ -34,35 +34,66 @@ const TrendingScreen: React.FC = () => {
     if (activeTab === 'Trending') {
       fetchTrendingContent();
     } else if (activeTab === 'My News') {
-      router.push('/mynews'); 
+      router.push('/mynews');
     }
   }, [activeTab]);
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
   };
+
   const formatToUTCT = (isoDate: string) => {
     const date = new Date(isoDate);
-    const hours = String(date.getUTCHours()).padStart(2, '0'); 
+    const hours = String(date.getUTCHours()).padStart(2, '0');
     const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-    const day = String(date.getUTCDate()).padStart(2, '0'); 
+    const day = String(date.getUTCDate()).padStart(2, '0');
     const month = String(date.getUTCMonth() + 1).padStart(2, '0');
     const year = date.getUTCFullYear();
-  
+
     return `${hours}:${minutes} ${day}-${month}-${year}`;
   };
+
+  const handleContentPress = async (item: any) => {
+    // Check if the item is a tweet by presence of `Tweet_Link`
+    if (item.Tweet_Link) {
+      try {
+        const response = await fetch('http://localhost:3000/set-tweet-link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ link: item.Tweet_Link }),
+        });
+
+        const data = await response.json();
+        if (data.status === 'Success') {
+          router.push('/tweetpage');
+        } else {
+          Alert.alert('Error', 'Failed to set tweet link');
+        }
+      } catch (error) {
+        console.error('Error setting tweet link:', error);
+        Alert.alert('Error', 'Unable to set tweet link');
+      }
+    } else {
+      Alert.alert('Error', 'Invalid content type');
+    }
+  };
+
   const renderContentCard = ({ item }: { item: any }) => (
-    <View style={styles.contentCard}>
+    <TouchableOpacity
+      onPress={() => {
+        // Infer type by checking the presence of `Tweet_Link`
+        if (item.Tweet_Link) handleContentPress(item);
+      }}
+      style={styles.contentCard}
+    >
       <Text style={styles.contentTitle}>{item.Tweet || item.headline}</Text>
       <Text style={styles.contentAuthor}>{item.Username || item.authors}</Text>
-      <Text style={styles.contentDate}>{formatToUTCT(item.Created_At)}</Text> {/* Format date */}
-      <Text style={styles.contentDescription}>{item.Explanation || item.short_description}</Text>
-    </View>
+      <Text style={styles.contentDate}>{formatToUTCT(item.Created_At)}</Text>
+    </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
- 
       <View style={styles.header}>
         <TouchableOpacity
           style={[styles.tabButton, activeTab === 'My News' && styles.activeTabButton]}
@@ -85,7 +116,6 @@ const TrendingScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
- 
       {loading ? (
         <Text style={styles.loadingText}>Loading...</Text>
       ) : errorMessage ? (
@@ -152,15 +182,10 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   contentCard: {
-    backgroundColor: '#F9F9F9',
+    backgroundColor: '#F0F8FF',
     borderRadius: 10,
-    padding: 15,
     marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1,
-    elevation: 3,
+    padding: 10,
   },
   contentTitle: {
     fontSize: 16,
