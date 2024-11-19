@@ -7,29 +7,29 @@ type IndustryType = string;
 export default function PreferencesScreen() {
   const [selectedOptions, setSelectedOptions] = useState<IndustryType[]>([]);
   const [username, setUsername] = useState<string>('');
-  const router = useRouter(); 
+  const router = useRouter();
 
   const industries: string[] = [
     'BREAKING NEWS','WORLDPOST', 'WORLD NEWS',  'WELLNESS', 'Football', 'Formula1',
     'POLITICS', 'U.S. NEWS', 'TRAVEL', 'THE WORLDPOST', 'TECH',   'Gaming', 'Health', 'Travel',
-    'TASTE', 'STYLE & BEAUTY', 'STYLE', 'SPORTS', 'SCIENCE', 
+    'TASTE', 'STYLE & BEAUTY', 'STYLE', 'SPORTS', 'SCIENCE',
     'RELIGION',  'PARENTS', 'PARENTING', 'MONEY', 'WEDDINGS',
-    'MEDIA', 'LATINO VOICES', 'IMPACT', 'HOME & LIVING', 
-    'HEALTHY LIVING', 'GREEN', 'GOOD NEWS', 'FOOD & DRINK', 'FIFTY', 
-    'ENVIRONMENT', 'ENTERTAINMENT', 'EDUCATION', 'DIVORCE', 
-    'CULTURE & ARTS', 'CRIME', 'COMEDY', 'COLLEGE', 'BUSINESS', 
+    'MEDIA', 'LATINO VOICES', 'IMPACT', 'HOME & LIVING',
+    'HEALTHY LIVING', 'GREEN', 'GOOD NEWS', 'FOOD & DRINK', 'FIFTY',
+    'ENVIRONMENT', 'ENTERTAINMENT', 'EDUCATION', 'DIVORCE',
+    'CULTURE & ARTS', 'CRIME', 'COMEDY', 'COLLEGE', 'BUSINESS',
     'BLACK VOICES', 'ARTS',   'WOMEN'
 
   ];
-  
+
 
   useEffect(() => {
     const fetchUsername = async () => {
       try {
-        const response = await fetch('http://localhost:3000/get-username'); 
+        const response = await fetch('http://localhost:3000/get-username');
         const data = await response.json();
         if (data.username) {
-          setUsername(data.username); 
+          setUsername(data.username);
         } else {
           setUsername('Guest');
         }
@@ -76,7 +76,7 @@ export default function PreferencesScreen() {
       await Promise.all(addPreferencePromises);
 
       Alert.alert('Success', 'Your preferences have been saved.');
-      router.push('/mynews'); 
+      router.push('/mynews');
     } catch (error) {
       console.error('Error handling view click:', error);
       Alert.alert('Error', 'Failed to save preferences.');

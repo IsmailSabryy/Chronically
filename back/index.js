@@ -4,7 +4,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 
 let currentArticleId = null;
-let currentUsername = null; 
+let currentUsername = null;
 let currentTweetLink = null;
 const app = express();
 app.use(cors());
@@ -62,7 +62,7 @@ app.post('/get-tweets', (req, res) => {
     const { category } = req.body;
 
     const query = `
-        SELECT Username, Tweet, Created_At, Retweets, Favorites, Tweet_Link, Media_URL, Explanation, categories 
+        SELECT Username, Tweet, Created_At, Retweets, Favorites, Tweet_Link, Media_URL, Explanation, categories
         FROM Tweets
         WHERE categories LIKE ?
         LIMIT 100;
@@ -118,7 +118,7 @@ app.post('/check-login', (req, res) => {
         if (err) {
             return res.status(500).json({ status: 'Error', message: 'Internal server error' });
         }
-        
+
         if (results.length > 0) {
             const user = results[0];
             if (user.deactivated === 1) {
@@ -183,7 +183,7 @@ app.post('/set-username', (req, res) => {
         return res.status(400).json({ status: 'Username is required' });
     }
 
- 
+
     currentUsername = username;
 
     return res.json({ status: 'Username set successfully' });
@@ -318,7 +318,7 @@ app.post('/get-tweet-by-link', (req, res) => {
     }
 
     const query = `
-        SELECT Username, Tweet, Created_At, Retweets, Favorites, Tweet_Link, Media_URL, Explanation, categories 
+        SELECT Username, Tweet, Created_At, Retweets, Favorites, Tweet_Link, Media_URL, Explanation, categories
         FROM Tweets
         WHERE Tweet_Link = ?;
     `;
