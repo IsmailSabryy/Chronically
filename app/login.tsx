@@ -3,8 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
 
-const domain = 'dev-vybmc25ljbvs5mu6.us.auth0.com';
-const clientId = 'vZGfiRpR9T87u5tKBhqZVUxeO2I6kJih';
+const domain = 'dev-1uzu6bsvrd2mj3og.us.auth0.com';
+const clientId = 'CZHJxAwp7QDLyavDaTLRzoy9yLKea4A1';
 
 const LoginScreen = () => {
   const router = useRouter();
@@ -41,6 +41,7 @@ const LoginScreen = () => {
 
       const user = await userInfoResponse.json();
       setUserInfo(user);
+      console.log('User Info:', user); // Display user info in the console
       return user;
     } catch (error) {
       console.error('Error during token exchange:', error);
@@ -50,6 +51,7 @@ const LoginScreen = () => {
   };
 
   const handleUserRegistration = async (user) => {
+    console.log('User Info:', user);
     const { sub: userId } = user;
     const url = 'http://localhost:3000/sign-up';
 
@@ -62,8 +64,7 @@ const LoginScreen = () => {
 
       const checkData = await checkResponse.json();
 
-      if (checkData.status === 'Error' && checkData.message === 'Username is already registered') {
-        // If user exists, set the username
+      if (checkData.message === 'Username is already registered') {
         const setUsernameResponse = await fetch('http://localhost:3000/set-username', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -74,15 +75,13 @@ const LoginScreen = () => {
 
         if (setUsernameData.status === 'Username set successfully') {
           console.log('Username set successfully');
-          router.push('/mynews'); // Proceed to preferences
         } else {
           setErrorMessage('Failed to set username.');
         }
-      } else if (checkData.status === 'Success') {
-        // If user is newly registered, proceed to preferences
-        router.push('/preferences');
+
+        router.push('/mynews');
       } else {
-        setErrorMessage('An error occurred during registration.');
+        router.push('/preferences');
       }
     } catch (error) {
       console.error('Error during user registration:', error);

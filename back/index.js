@@ -105,15 +105,15 @@ app.post('/get-alltweets', (req, res) => {
     });
 });
 app.post('/check-login', (req, res) => {
-    const { username, password } = req.body;
+    const { username, auth_token } = req.body;
 
     const query = `
-        SELECT username, deactivated
-        FROM Users
-        WHERE username = ? AND password = ?;
+        SELECT username, deactivated, auth_token
+        FROM Users_new
+        WHERE username = ? AND auth_token = ?;
     `;
 
-    pool.query(query, [username, password], (err, results) => {
+    pool.query(query, [username, auth_token], (err, results) => {
         if (err) {
             return res.status(500).json({ status: 'Error', message: 'Internal server error' });
         }
@@ -129,23 +129,38 @@ app.post('/check-login', (req, res) => {
         }
     });
 });
-app.post('/sign-in', (req, res) => {
-    const { username, password } = req.body;
-    const checkQuery = `SELECT username FROM Users WHERE username = ?;`;
-    const insertQuery = `INSERT INTO Users (username, password) VALUES (?, ?);`;
+app.post('/sign-up', (req, res) => {
+console.log('Request Body:', req.body);
+    const { auth_token, nickname, email } = req.body;
 
-    pool.query(checkQuery, [username], (checkErr, checkResults) => {
-        if (checkResults.length > 0) {
-            return res.status(409).json({ status: 'Error', message: 'Username is already registered' });
+    // Logging for debugging
+    console.log('Received data:', { auth_token, nickname, email });
+
+    const checkQuery = `SELECT id FROM Users_new WHERE username = ? OR email = ?;`;
+    const insertQuery = `INSERT INTO Users_new (username, email, auth_token) VALUES (?, ?, ?);`;
+
+    pool.query(checkQuery, [nickname, email], (checkErr, checkResults) => {
+        if (checkErr) {
+            console.error('Database error during check:', checkErr);  // Log the error
+            return res.status(500).json({ status: 'Error', error: checkErr.message });
         }
-        pool.query(insertQuery, [username, password], (insertErr) => {
+
+        if (checkResults.length > 0) {
+            console.log('Username or email already registered');
+            return res.status(409).json({ status: 'Error', message: 'Username or email is already registered' });
+        }
+
+        pool.query(insertQuery, [nickname, email, auth_token], (insertErr) => {
             if (insertErr) {
+                console.error('Database error during insert:', insertErr);  // Log the error
                 return res.status(500).json({ status: 'Error', error: insertErr.message });
             }
             return res.json({ status: 'Success', message: 'User registered successfully' });
         });
     });
 });
+
+
 app.post('/add-preference', (req, res) => {
     const { username, preference } = req.body;
     const insertQuery = `INSERT INTO Preferences (username, preference) VALUES (?, ?);`;
@@ -175,18 +190,25 @@ app.post('/check-preferences', (req, res) => {
         }
     });
 });
+
 app.post('/set-username', (req, res) => {
     const { username } = req.body;
 
+    // Check if username is provided
     if (!username) {
-        return res.status(400).json({ status: 'Username is required' });
+        return res.status(400).json({ status: 'Error', message: 'Username is required' });
     }
 
-
+    // Set the username to the global variable
     currentUsername = username;
 
-    return res.json({ status: 'Username set successfully' });
+    // Log the updated username for debugging
+    console.log('Current Username Set:', currentUsername);
+
+    return res.json({ status: 'Success', message: 'Username set successfully' });
 });
+
+
 app.get('/get-username', (req, res) => {
     if (currentUsername) {
         return res.json({ username: currentUsername });
@@ -247,7 +269,7 @@ app.post('/deactivate-user', (req, res) => {
     const { username } = req.body;
 
     const query = `
-        UPDATE Users
+        UPDATE Users_new
         SET deactivated = 1
         WHERE username = ?;
     `;
@@ -268,7 +290,7 @@ app.post('/delete-user', (req, res) => {
     const { username } = req.body;
 
     const query = `
-        DELETE FROM Users
+        DELETE FROM Users_new
         WHERE username = ?;
     `;
 

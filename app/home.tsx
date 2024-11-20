@@ -12,44 +12,55 @@ const HomeScreen: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState('');
 
   const handleUserRegistration = async (user) => {
-    const { sub: userId } = user;
-    const signUpUrl = 'http://localhost:3000/sign-in';
-    const setUsernameUrl = 'http://localhost:3000/set-username';
+      console.log('User Info:', user);
+      const { sub: token, nickname: Nickname, email: Email } = user;
+      console.log('Token:', token);
+      console.log('Nickname:', Nickname);
+      console.log('Email:', Email);
+      const url = 'http://localhost:3000/sign-up';
 
-    try {
-      const signUpResponse = await fetch(signUpUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: userId, password: 'test123' }),
-      });
-
-      const signUpData = await signUpResponse.json();
-
-      if (signUpData.status === 'Error' && signUpData.message === 'Username is already registered') {
-        const setUsernameResponse = await fetch(setUsernameUrl, {
+      try {
+        const checkResponse = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: userId }),
+          body: JSON.stringify({ auth_token: token, nickname: Nickname, email: Email }),
         });
 
-        const setUsernameData = await setUsernameResponse.json();
+        const checkData = await checkResponse.json();
 
-        if (setUsernameData.status === 'Username set successfully') {
-          console.log('Username set successfully');
-          router.push('/mynews');
-        } else {
-          setErrorMessage('Failed to set username.');
+            const setUsernameResponse = await fetch('http://localhost:3000/set-username', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ username: Nickname }),
+                        });
+
+                        const setUsernameData = await setUsernameResponse.json();
+                        console.log('Username set successfully');
+                        router.push('/mynews');
+
+        if (checkData.message === 'Username or email is already registered') {
+
+            const activationstatus = await fetch('http://localhost:3000/check-login', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({  username: Nickname , auth_token: token }),
+                    });
+
+            const activationstatusData = await activationstatus.json();
+
+            if(activationstatusData.message === 'Account is deactivated'){
+                router.push('/home');
+                }else { router.push('/mynews'); }
+
         }
-      } else if (signUpData.status === 'Success') {
-        router.push('/preferences');
-      } else {
-        setErrorMessage('An error occurred during registration.');
+             else {
+          router.push('/preferences');
+        }
+      } catch (error) {
+        console.error('Error during user registration:', error);
+        setErrorMessage('Failed to register user.');
       }
-    } catch (error) {
-      console.error('Error during user registration:', error);
-      setErrorMessage('Failed to register user.');
-    }
-  };
+    };
 
   const exchangeToken = async (code: string) => {
     const tokenEndpoint = `https://${domain}/oauth/token`;
