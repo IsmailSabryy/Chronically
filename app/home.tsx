@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 
-const domain = 'dev-1uzu6bsvrd2mj3og.us.auth0.com';
-const clientId = 'CZHJxAwp7QDLyavDaTLRzoy9yLKea4A1';
+const domain = 'dev-vybmc25ljbvs5mu6.us.auth0.com';
+const clientId = 'vZGfiRpR9T87u5tKBhqZVUxeO2I6kJih';
 const redirectUri = 'http://localhost:8081/preferences';
 
 const HomeScreen: React.FC = () => {

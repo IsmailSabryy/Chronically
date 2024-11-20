@@ -3,8 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
 
-const domain = 'dev-1uzu6bsvrd2mj3og.us.auth0.com';
-const clientId = 'CZHJxAwp7QDLyavDaTLRzoy9yLKea4A1';
+const domain = 'dev-vybmc25ljbvs5mu6.us.auth0.com';
+const clientId = 'vZGfiRpR9T87u5tKBhqZVUxeO2I6kJih';
 
 const LoginScreen = () => {
   const router = useRouter();
