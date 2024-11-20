@@ -4,12 +4,11 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 
 let currentArticleId = null;
-let currentUsername = null; 
+let currentUsername = null;
 let currentTweetLink = null;
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
-
 
 
 const pool = mysql.createPool({
@@ -62,7 +61,7 @@ app.post('/get-tweets', (req, res) => {
     const { category } = req.body;
 
     const query = `
-        SELECT Username, Tweet, Created_At, Retweets, Favorites, Tweet_Link, Media_URL, Explanation, categories 
+        SELECT Username, Tweet, Created_At, Retweets, Favorites, Tweet_Link, Media_URL, Explanation, categories
         FROM Tweets
         WHERE categories LIKE ?
         LIMIT 100;
@@ -106,19 +105,19 @@ app.post('/get-alltweets', (req, res) => {
     });
 });
 app.post('/check-login', (req, res) => {
-    const { username, password } = req.body;
+    const { username, auth_token } = req.body;
 
     const query = `
-        SELECT username, deactivated
-        FROM Users
-        WHERE username = ? AND password = ?;
+        SELECT username, deactivated, auth_token
+        FROM Users_new
+        WHERE username = ? AND auth_token = ?;
     `;
 
-    pool.query(query, [username, password], (err, results) => {
+    pool.query(query, [username, auth_token], (err, results) => {
         if (err) {
             return res.status(500).json({ status: 'Error', message: 'Internal server error' });
         }
-        
+
         if (results.length > 0) {
             const user = results[0];
             if (user.deactivated === 1) {
@@ -131,22 +130,35 @@ app.post('/check-login', (req, res) => {
     });
 });
 app.post('/sign-up', (req, res) => {
-    const { username, password } = req.body;
-    const checkQuery = `SELECT username FROM Users WHERE username = ?;`;
-    const insertQuery = `INSERT INTO Users (username, password) VALUES (?, ?);`;
+console.log('Request Body:', req.body);
+    const { auth_token, nickname, email } = req.body;
 
-    pool.query(checkQuery, [username], (checkErr, checkResults) => {
-        if (checkResults.length > 0) {
-            return res.status(409).json({ status: 'Error', message: 'Username is already registered' });
+    console.log('Received data:', { auth_token, nickname, email });
+
+    const checkQuery = `SELECT id FROM Users_new WHERE username = ? OR email = ?;`;
+    const insertQuery = `INSERT INTO Users_new (username, email, auth_token) VALUES (?, ?, ?);`;
+
+    pool.query(checkQuery, [nickname, email], (checkErr, checkResults) => {
+        if (checkErr) {
+            console.error('Database error during check:', checkErr);  // Log the error
+            return res.status(500).json({ status: 'Error', error: checkErr.message });
         }
-        pool.query(insertQuery, [username, password], (insertErr) => {
+
+        if (checkResults.length > 0) {
+            console.log('Username or email already registered');
+            return res.status(409).json({ status: 'Error', message: 'Username or email is already registered' });
+        }
+
+        pool.query(insertQuery, [nickname, email, auth_token], (insertErr) => {
             if (insertErr) {
+                console.error('Database error during insert:', insertErr);  // Log the error
                 return res.status(500).json({ status: 'Error', error: insertErr.message });
             }
             return res.json({ status: 'Success', message: 'User registered successfully' });
         });
     });
 });
+
 app.post('/add-preference', (req, res) => {
     const { username, preference } = req.body;
     const insertQuery = `INSERT INTO Preferences (username, preference) VALUES (?, ?);`;
@@ -176,18 +188,25 @@ app.post('/check-preferences', (req, res) => {
         }
     });
 });
+
 app.post('/set-username', (req, res) => {
     const { username } = req.body;
 
+    // Check if username is provided
     if (!username) {
-        return res.status(400).json({ status: 'Username is required' });
+        return res.status(400).json({ status: 'Error', message: 'Username is required' });
     }
 
- 
+    // Set the username to the global variable
     currentUsername = username;
 
-    return res.json({ status: 'Username set successfully' });
+    // Log the updated username for debugging
+    console.log('Current Username Set:', currentUsername);
+
+    return res.json({ status: 'Success', message: 'Username set successfully' });
 });
+
+
 app.get('/get-username', (req, res) => {
     if (currentUsername) {
         return res.json({ username: currentUsername });
@@ -248,7 +267,7 @@ app.post('/deactivate-user', (req, res) => {
     const { username } = req.body;
 
     const query = `
-        UPDATE Users
+        UPDATE Users_new
         SET deactivated = 1
         WHERE username = ?;
     `;
@@ -269,7 +288,7 @@ app.post('/delete-user', (req, res) => {
     const { username } = req.body;
 
     const query = `
-        DELETE FROM Users
+        DELETE FROM Users_new
         WHERE username = ?;
     `;
 
@@ -318,7 +337,7 @@ app.post('/get-tweet-by-link', (req, res) => {
     }
 
     const query = `
-        SELECT Username, Tweet, Created_At, Retweets, Favorites, Tweet_Link, Media_URL, Explanation, categories 
+        SELECT Username, Tweet, Created_At, Retweets, Favorites, Tweet_Link, Media_URL, Explanation, categories
         FROM Tweets
         WHERE Tweet_Link = ?;
     `;
@@ -335,7 +354,77 @@ app.post('/get-tweet-by-link', (req, res) => {
         }
     });
 });
+app.post('/delete-preferences', (req, res) => {
+    const { username } = req.body;
 
+    if (!username) {
+        return res.status(400).json({ status: 'Error', message: 'Username is required' });
+    }
+
+    const deleteQuery = `DELETE FROM Preferences WHERE username = ?;`;
+
+    pool.query(deleteQuery, [username], (err, results) => {
+        if (err) {
+            return res.status(500).json({ status: 'Error', error: err.message });
+        }
+
+        if (results.affectedRows > 0) {
+            return res.json({ status: 'Success', message: 'Preferences deleted successfully' });
+        } else {
+            return res.status(404).json({ status: 'Error', message: 'No preferences found for this username' });
+        }
+    });
+});
+
+app.post('/get-related', (req, res) => { 
+    const { id } = req.body;
+
+    if (!id) {
+        return res.status(400).json({ status: 'Error', message: 'Article ID is required' });
+    }
+
+    const clusterQuery = `
+        SELECT clusterID 
+        FROM Articles 
+        WHERE id = ?;
+    `;
+
+    pool.query(clusterQuery, [id], (clusterError, clusterResults) => {
+        if (clusterError) {
+            return res.status(500).json({ status: 'Error', message: clusterError.message });
+        }
+
+        if (clusterResults.length === 0) {
+            return res.status(404).json({ status: 'Error', message: 'No article found with the given ID' });
+        }
+
+        const clusterID = clusterResults[0].clusterID;
+
+        // If clusterID is -1, return an empty response.
+        if (clusterID === -1||clusterID==0) {
+            return res.json({ status: 'Success', data: [] });
+        }
+
+        const relatedQuery = `
+            SELECT id, link, headline, category, short_description, authors, date, clusterID
+            FROM Articles
+            WHERE clusterID = ? AND id != ?
+            LIMIT 1000;
+        `;
+
+        pool.query(relatedQuery, [clusterID, id], (relatedError, relatedResults) => {
+            if (relatedError) {
+                return res.status(500).json({ status: 'Error', message: relatedError.message });
+            }
+
+            if (relatedResults.length > 0) {
+                return res.json({ status: 'Success', data: relatedResults });
+            } else {
+                return res.status(404).json({ status: 'Error', message: 'No related articles found' });
+            }
+        });
+    });
+});
 
 
 const PORT = process.env.PORT || 3000;

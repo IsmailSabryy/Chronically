@@ -10,7 +10,25 @@ const HomePage: React.FC = () => {
   const [articlesAndTweets, setArticlesAndTweets] = useState<any[]>([]);
   const [isSeeAll, setIsSeeAll] = useState(false);
   const router = useRouter();
+  const formatToUTCT = (isoDate: string) => {
+    const date = new Date(isoDate);
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const year = date.getUTCFullYear();
 
+    return `${hours}:${minutes} ${day}-${month}-${year}`;
+  };
+  const formatToUTCA = (isoDate: string) => { 
+    const date = new Date(isoDate);
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const year = date.getUTCFullYear();
+  
+    return `${day}-${month}-${year}`;
+  };
+  
   const fetchUsername = async () => {
     try {
       const response = await fetch('http://localhost:3000/get-username');
@@ -162,7 +180,7 @@ const HomePage: React.FC = () => {
         <TouchableOpacity style={styles.articleCard} onPress={() => handleContentPress(item)}>
           <Text style={styles.articleTitle}>{item.headline}</Text>
           <Text style={styles.articleAuthor}>{item.authors}</Text>
-          <Text style={styles.articleDate}>{item.date}</Text>
+          <Text style={styles.articleDate}>{ formatToUTCA(item.date)}</Text>
         </TouchableOpacity>
       );
     } else if (item.type === 'tweet') {
@@ -170,7 +188,7 @@ const HomePage: React.FC = () => {
         <TouchableOpacity style={styles.tweetCard} onPress={() => handleContentPress(item)}>
           <Text style={styles.tweetText}>{item.Tweet}</Text>
           <Text style={styles.tweetUsername}>{item.Username}</Text>
-          <Text style={styles.tweetDate}>{item.Created_At}</Text>
+          <Text style={styles.tweetDate}>{formatToUTCT(item.Created_At)}</Text>
         </TouchableOpacity>
       );
     }
@@ -371,4 +389,3 @@ const styles = StyleSheet.create({
     color: '#777777',
   },
 });
-
