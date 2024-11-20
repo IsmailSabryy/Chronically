@@ -1,16 +1,126 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 
+const domain = 'dev-1uzu6bsvrd2mj3og.us.auth0.com';
+const clientId = 'CZHJxAwp7QDLyavDaTLRzoy9yLKea4A1';
+const redirectUri = 'http://localhost:8081/preferences';
+
 const HomeScreen: React.FC = () => {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const handleLogin = () => {
-    router.push('/login');
+  const handleUserRegistration = async (user) => {
+    const { sub: userId } = user;
+    const signUpUrl = 'http://localhost:3000/sign-in';
+    const setUsernameUrl = 'http://localhost:3000/set-username';
+
+    try {
+      const signUpResponse = await fetch(signUpUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: userId, password: 'test123' }),
+      });
+
+      const signUpData = await signUpResponse.json();
+
+      if (signUpData.status === 'Error' && signUpData.message === 'Username is already registered') {
+        const setUsernameResponse = await fetch(setUsernameUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: userId }),
+        });
+
+        const setUsernameData = await setUsernameResponse.json();
+
+        if (setUsernameData.status === 'Username set successfully') {
+          console.log('Username set successfully');
+          router.push('/mynews');
+        } else {
+          setErrorMessage('Failed to set username.');
+        }
+      } else if (signUpData.status === 'Success') {
+        router.push('/preferences');
+      } else {
+        setErrorMessage('An error occurred during registration.');
+      }
+    } catch (error) {
+      console.error('Error during user registration:', error);
+      setErrorMessage('Failed to register user.');
+    }
   };
 
-  const handleCreateAccount = () => {
-    router.push('/signup');
+  const exchangeToken = async (code: string) => {
+    const tokenEndpoint = `https://${domain}/oauth/token`;
+
+    try {
+      const response = await fetch(tokenEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          grant_type: 'authorization_code',
+          client_id: clientId,
+          code,
+          redirect_uri: redirectUri,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Token exchange failed');
+
+      const data = await response.json();
+
+      const userInfoResponse = await fetch(`https://${domain}/userinfo`, {
+        headers: { Authorization: `Bearer ${data.access_token}` },
+      });
+
+      if (!userInfoResponse.ok) throw new Error('User info fetch failed');
+
+      const user = await userInfoResponse.json();
+      await handleUserRegistration(user);
+    } catch (error) {
+      console.error('Error during token exchange:', error);
+      setErrorMessage('Failed to authenticate.');
+      throw error;
+    }
+  };
+
+  const handleLogin = () => {
+    setLoading(true);
+    setErrorMessage('');
+
+    const authWindow = window.open(
+      `https://${domain}/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=openid profile email&prompt=login`,
+      'Auth0 Login',
+      'width=500,height=600'
+    );
+
+    const interval = setInterval(() => {
+      try {
+        if (authWindow && authWindow.closed) {
+          clearInterval(interval);
+          setLoading(false);
+        }
+
+        if (authWindow && authWindow.location.href.includes(redirectUri)) {
+          const params = new URL(authWindow.location.href).searchParams;
+          const code = params.get('code');
+
+          if (code) {
+            clearInterval(interval);
+            authWindow.close();
+
+            exchangeToken(code)
+              .catch((error) => {
+                setErrorMessage('Failed to complete login.');
+                console.error(error);
+              });
+          }
+        }
+      } catch (error) {
+        // Ignore cross-origin errors
+      }
+    }, 500);
   };
 
   return (
@@ -18,13 +128,18 @@ const HomeScreen: React.FC = () => {
       <Image source={require('../assets/images/logo.png')} style={styles.logoImage} />
       <View style={styles.bottomContainer}>
         <View style={styles.box}>
-          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-            <Text style={styles.loginText}>Login</Text>
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            {loading ? (
+              <Text style={styles.loginText}>Loading...</Text>
+            ) : (
+              <Text style={styles.loginText}>Login</Text>
+            )}
           </TouchableOpacity>
-          <Text style={styles.registerText}>New to Chronically?</Text>
-          <TouchableOpacity onPress={handleCreateAccount}>
-            <Text style={styles.createAccountText}>Create an Account</Text>
-          </TouchableOpacity>
+          {errorMessage ? <Text style={styles.errorMessage}>{errorMessage}</Text> : null}
         </View>
       </View>
     </View>
@@ -72,17 +187,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  registerText: {
-    color: '#333',
-    fontSize: 14,
+  errorMessage: {
+    color: 'red',
     marginTop: 10,
-    fontWeight: 'bold',
-  },
-  createAccountText: {
-    color: 'blue',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginTop: 5,
-    textDecorationLine: 'underline',
   },
 });

@@ -11,7 +11,6 @@ app.use(cors());
 app.use(bodyParser.json());
 
 
-
 const pool = mysql.createPool({
     host: "chronicallyswe.c1ikges4mouc.eu-north-1.rds.amazonaws.com",
     user: "root",
@@ -130,7 +129,7 @@ app.post('/check-login', (req, res) => {
         }
     });
 });
-app.post('/sign-up', (req, res) => {
+app.post('/sign-in', (req, res) => {
     const { username, password } = req.body;
     const checkQuery = `SELECT username FROM Users WHERE username = ?;`;
     const insertQuery = `INSERT INTO Users (username, password) VALUES (?, ?);`;
@@ -335,7 +334,27 @@ app.post('/get-tweet-by-link', (req, res) => {
         }
     });
 });
+app.post('/delete-preferences', (req, res) => {
+    const { username } = req.body;
 
+    if (!username) {
+        return res.status(400).json({ status: 'Error', message: 'Username is required' });
+    }
+
+    const deleteQuery = `DELETE FROM Preferences WHERE username = ?;`;
+
+    pool.query(deleteQuery, [username], (err, results) => {
+        if (err) {
+            return res.status(500).json({ status: 'Error', error: err.message });
+        }
+
+        if (results.affectedRows > 0) {
+            return res.json({ status: 'Success', message: 'Preferences deleted successfully' });
+        } else {
+            return res.status(404).json({ status: 'Error', message: 'No preferences found for this username' });
+        }
+    });
+});
 
 
 const PORT = process.env.PORT || 3000;

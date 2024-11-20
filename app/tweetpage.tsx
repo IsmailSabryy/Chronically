@@ -7,6 +7,7 @@ import {
   Image,
   Alert,
   ScrollView,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -53,6 +54,12 @@ const TweetPage: React.FC = () => {
     }
   };
 
+  const handleMediaPress = (tweetLink: string) => {
+    Linking.openURL(tweetLink).catch((err) =>
+      Alert.alert('Error', 'Failed to open tweet.')
+    );
+  };
+
   return (
     <ScrollView style={styles.container}>
       <TouchableOpacity style={styles.backIcon} onPress={() => router.back()}>
@@ -75,11 +82,15 @@ const TweetPage: React.FC = () => {
             </View>
             <Text style={styles.tweetText}>{tweetData.Tweet}</Text>
             {tweetData.Media_URL && (
-              <Image
-                source={{ uri: tweetData.Media_URL }}
-                style={styles.media}
-                resizeMode="contain"
-              />
+              <TouchableOpacity
+                onPress={() => handleMediaPress(tweetData.Tweet_Link)}
+              >
+                <Image
+                  source={{ uri: tweetData.Media_URL }}
+                  style={styles.media}
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
             )}
             <View style={styles.stats}>
               <Text style={styles.stat}>
@@ -177,7 +188,7 @@ const styles = StyleSheet.create({
   },
   stat: {
     fontSize: 14,
-    color: '#CCCCCC', // Lighter gray for stats
+    color: '#CCCCCC',
   },
   aiExplanationHeader: {
     fontSize: 18,

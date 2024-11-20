@@ -6,22 +6,20 @@ type IndustryType = string;
 
 export default function PreferencesScreen() {
   const [selectedOptions, setSelectedOptions] = useState<IndustryType[]>([]);
-  const [username, setUsername] = useState<string>('');
+  const [username, setUsername] = useState<string>('Guest');
   const router = useRouter();
 
   const industries: string[] = [
-    'BREAKING NEWS','WORLDPOST', 'WORLD NEWS',  'WELLNESS', 'Football', 'Formula1',
-    'POLITICS', 'U.S. NEWS', 'TRAVEL', 'THE WORLDPOST', 'TECH',   'Gaming', 'Health', 'Travel',
+    'BREAKING NEWS', 'WORLDPOST', 'WORLD NEWS', 'WELLNESS', 'Football', 'Formula1',
+    'POLITICS', 'U.S. NEWS', 'TRAVEL', 'THE WORLDPOST', 'TECH', 'Gaming', 'Health', 'Travel',
     'TASTE', 'STYLE & BEAUTY', 'STYLE', 'SPORTS', 'SCIENCE',
-    'RELIGION',  'PARENTS', 'PARENTING', 'MONEY', 'WEDDINGS',
+    'RELIGION', 'PARENTS', 'PARENTING', 'MONEY', 'WEDDINGS',
     'MEDIA', 'LATINO VOICES', 'IMPACT', 'HOME & LIVING',
     'HEALTHY LIVING', 'GREEN', 'GOOD NEWS', 'FOOD & DRINK', 'FIFTY',
     'ENVIRONMENT', 'ENTERTAINMENT', 'EDUCATION', 'DIVORCE',
     'CULTURE & ARTS', 'CRIME', 'COMEDY', 'COLLEGE', 'BUSINESS',
-    'BLACK VOICES', 'ARTS',   'WOMEN'
-
+    'BLACK VOICES', 'ARTS', 'WOMEN',
   ];
-
 
   useEffect(() => {
     const fetchUsername = async () => {
@@ -38,8 +36,41 @@ export default function PreferencesScreen() {
         setUsername('Guest');
       }
     };
-    fetchUsername();
-  }, []);
+  
+    const fetchPreferences = async () => {
+      try {
+        if (username === 'Guest') return; // Ensure username is set
+    
+        const response = await fetch('http://localhost:3000/check-preferences', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username }),
+        });
+    
+        const data = await response.json();
+    
+        if (data.status === 'Success' && Array.isArray(data.data)) {
+          const preferences = data.data.map((item) => item.preference);
+          setSelectedOptions(preferences.length ? preferences : []);
+        } else {
+          setSelectedOptions([]); 
+        }
+      } catch (error) {
+        console.error('Error fetching preferences:', error);
+        setSelectedOptions([]); // Reset state on error
+      }
+    };
+    
+    const initializePreferences = async () => {
+      await fetchUsername();
+      if (username !== 'Guest') {
+        await fetchPreferences();
+      }
+    };
+  
+    initializePreferences();
+  }, [username]);
+  
 
   const toggleOption = (option: IndustryType) => {
     setSelectedOptions((prevSelected) =>
@@ -48,7 +79,24 @@ export default function PreferencesScreen() {
         : [...prevSelected, option]
     );
   };
-
+  const handleResetPreferences = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/delete-preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username }),
+      });
+  
+      if (response.ok) {
+        setSelectedOptions([]); // Clear UI state
+      } else {
+        console.error('Error resetting preferences:', await response.json());
+      }
+    } catch (error) {
+      console.error('Error resetting preferences:', error);
+    }
+  };
+  
   const handleViewClick = async () => {
     if (selectedOptions.length === 0) {
       Alert.alert('No Preferences', 'Please select at least one preference.');
@@ -97,8 +145,11 @@ export default function PreferencesScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
+    <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
       <View style={styles.container}>
+        <TouchableOpacity style={styles.resetButton} onPress={handleResetPreferences}>
+          <Text style={styles.resetButtonText}>Reset</Text>
+        </TouchableOpacity>
         <Text style={styles.heading}>Hi {username},</Text>
         <Text style={styles.subHeading}>What are your preferences from X and other News Sources?</Text>
 
@@ -133,6 +184,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F7F9FC',
     padding: 20,
+  },
+  resetButton: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    backgroundColor: '#FF6F61',
+    padding: 10,
+    borderRadius: 5,
+    zIndex: 10, // Ensure it appears above other elements
+    elevation: 5, // Adds shadow on Android
+  },
+  resetButtonText: {
+    color: '#FFF',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   heading: {
     fontSize: 24,
