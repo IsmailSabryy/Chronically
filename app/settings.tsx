@@ -63,7 +63,12 @@ const SettingsScreen: React.FC = () => {
       console.error('Error deleting account:', error);
     });
   };
-
+  const logout = () => {
+    
+          router.push('/home'); 
+       
+  };
+  
   return (
     <View style={styles.mainContainer}>
       <TouchableOpacity style={styles.backIcon} onPress={() => router.back()}>
@@ -75,6 +80,10 @@ const SettingsScreen: React.FC = () => {
       </View>
       <View style={styles.buttonContainer}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
+         <TouchableOpacity style={styles.button} onPress={logout}>
+           <Text style={styles.buttonText}>Logout</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.button} onPress={() => router.push('./preferences')}>
             <Text style={styles.buttonText}>Edit Preferences</Text>
           </TouchableOpacity>

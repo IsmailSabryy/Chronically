@@ -10,17 +10,18 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
-const formatToUTCA = (isoDate: string) => { 
-    const date = new Date(isoDate);
-    const day = String(date.getUTCDate()).padStart(2, '0');
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const year = date.getUTCFullYear();
-  
-    return `${day}-${month}-${year}`;
-  };
-  
+
+const formatToUTCA = (isoDate: string) => {
+  const date = new Date(isoDate);
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const year = date.getUTCFullYear();
+  return `${day}-${month}-${year}`;
+};
+
 const ArticlePage: React.FC = () => {
   const [articleData, setArticleData] = useState<any>(null);
+  const [relatedArticles, setRelatedArticles] = useState<any[]>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -38,9 +39,8 @@ const ArticlePage: React.FC = () => {
         Alert.alert('Error', 'No article ID set');
         return;
       }
-
-      // Fetch article details using the ID
-      fetchArticleDetails(idData.articleId);
+      await fetchArticleDetails(idData.articleId);
+      fetchRelatedArticles(idData.articleId);
     } catch (error) {
       console.error('Error fetching article ID:', error);
       Alert.alert('Error', 'Unable to fetch article ID');
@@ -71,10 +71,58 @@ const ArticlePage: React.FC = () => {
     }
   };
 
+  const fetchRelatedArticles = async (id: number) => {
+    try {
+      const response = await fetch('http://localhost:3000/get-related', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch related articles');
+      }
+
+      const data = await response.json();
+      if (data.status === 'Success') {
+        setRelatedArticles(data.data);
+      } else {
+        Alert.alert('Error', 'No related articles found');
+      }
+    } catch (error) {
+      console.error('Error fetching related articles:', error);
+      Alert.alert('Error', 'Unable to fetch related articles');
+    }
+  };
+
   const handleLinkPress = (link: string) => {
     Linking.openURL(link).catch(() =>
       Alert.alert('Error', 'Failed to open article link.')
     );
+  };
+
+  const handleRelatedArticlePress = async (id: number) => {
+    try {
+      const response = await fetch('http://localhost:3000/set-article-id', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to set article ID');
+      }
+
+      const data = await response.json();
+      if (data.status === 'Success') {
+        router.push('/articlepage'); // Navigate to the article page
+      } else {
+        Alert.alert('Error', 'Failed to set the new article ID');
+      }
+    } catch (error) {
+      console.error('Error setting article ID:', error);
+      Alert.alert('Error', 'Unable to set article ID');
+    }
   };
 
   return (
@@ -95,7 +143,6 @@ const ArticlePage: React.FC = () => {
           <Text style={styles.shortDescription}>
             {articleData.short_description}
           </Text>
-
           <TouchableOpacity
             style={styles.readMoreButton}
             onPress={() => handleLinkPress(articleData.link)}
@@ -106,6 +153,18 @@ const ArticlePage: React.FC = () => {
       ) : (
         <Text style={styles.loadingText}>Loading article details...</Text>
       )}
+
+      <Text style={styles.relatedHeader}>Related Articles</Text>
+      {relatedArticles.map((article) => (
+        <TouchableOpacity
+          key={article.id}
+          style={styles.relatedCard}
+          onPress={() => handleRelatedArticlePress(article.id)}
+        >
+          <Text style={styles.relatedHeadline}>{article.headline}</Text>
+          <Text style={styles.relatedCategory}>Category: {article.category}</Text>
+        </TouchableOpacity>
+      ))}
     </ScrollView>
   );
 };
@@ -177,6 +236,36 @@ const styles = StyleSheet.create({
     color: '#777',
     textAlign: 'center',
     marginTop: 50,
+  },
+  relatedHeader: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 30,
+    marginBottom: 10,
+  },
+  relatedContainer: {
+    flexDirection: 'row',
+  },
+  relatedCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 10,
+    marginRight: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+    width: 200,
+  },
+  relatedHeadline: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  relatedCategory: {
+    fontSize: 14,
+    color: '#777',
   },
 });
 

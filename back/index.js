@@ -133,7 +133,6 @@ app.post('/sign-up', (req, res) => {
 console.log('Request Body:', req.body);
     const { auth_token, nickname, email } = req.body;
 
-    // Logging for debugging
     console.log('Received data:', { auth_token, nickname, email });
 
     const checkQuery = `SELECT id FROM Users_new WHERE username = ? OR email = ?;`;
@@ -159,7 +158,6 @@ console.log('Request Body:', req.body);
         });
     });
 });
-
 
 app.post('/add-preference', (req, res) => {
     const { username, preference } = req.body;
@@ -375,6 +373,56 @@ app.post('/delete-preferences', (req, res) => {
         } else {
             return res.status(404).json({ status: 'Error', message: 'No preferences found for this username' });
         }
+    });
+});
+
+app.post('/get-related', (req, res) => { 
+    const { id } = req.body;
+
+    if (!id) {
+        return res.status(400).json({ status: 'Error', message: 'Article ID is required' });
+    }
+
+    const clusterQuery = `
+        SELECT clusterID 
+        FROM Articles 
+        WHERE id = ?;
+    `;
+
+    pool.query(clusterQuery, [id], (clusterError, clusterResults) => {
+        if (clusterError) {
+            return res.status(500).json({ status: 'Error', message: clusterError.message });
+        }
+
+        if (clusterResults.length === 0) {
+            return res.status(404).json({ status: 'Error', message: 'No article found with the given ID' });
+        }
+
+        const clusterID = clusterResults[0].clusterID;
+
+        // If clusterID is -1, return an empty response.
+        if (clusterID === -1||clusterID==0) {
+            return res.json({ status: 'Success', data: [] });
+        }
+
+        const relatedQuery = `
+            SELECT id, link, headline, category, short_description, authors, date, clusterID
+            FROM Articles
+            WHERE clusterID = ? AND id != ?
+            LIMIT 1000;
+        `;
+
+        pool.query(relatedQuery, [clusterID, id], (relatedError, relatedResults) => {
+            if (relatedError) {
+                return res.status(500).json({ status: 'Error', message: relatedError.message });
+            }
+
+            if (relatedResults.length > 0) {
+                return res.json({ status: 'Success', data: relatedResults });
+            } else {
+                return res.status(404).json({ status: 'Error', message: 'No related articles found' });
+            }
+        });
     });
 });
 
