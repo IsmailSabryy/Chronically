@@ -1,10 +1,17 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter} from 'expo-router';
+import {makeRedirectUri} from 'expo-auth-session';
+
 
 const domain = 'dev-vybmc25ljbvs5mu6.us.auth0.com';
 const clientId = 'vZGfiRpR9T87u5tKBhqZVUxeO2I6kJih';
-const redirectUri = 'http://localhost:8081/preferences';
+
+const redirectUri = makeRedirectUri({
+  scheme: 'expo',
+  path: 'preferences',
+});
+
 
 const HomeScreen: React.FC = () => {
   const router = useRouter();
