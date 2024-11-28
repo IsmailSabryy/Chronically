@@ -1,64 +1,77 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Image,
-  StyleSheet,
-  Dimensions,
-  Platform,
-  KeyboardAvoidingView,
-  ScrollView,
-} from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet , Platform} from 'react-native';
 import { useRouter } from 'expo-router';
-import { makeRedirectUri } from 'expo-auth-session';
+import { makeRedirectUri, useAuthRequest } from 'expo-auth-session';
 
-const domain = 'dev-vybmc25ljbvs5mu6.us.auth0.com';
-const clientId = 'vZGfiRpR9T87u5tKBhqZVUxeO2I6kJih';
+const domain = 'dev-1uzu6bsvrd2mj3og.us.auth0.com';
+const clientId = 'CZHJxAwp7QDLyavDaTLRzoy9yLKea4A1';
 
 const redirectUri = makeRedirectUri({
   scheme: 'expo',
-  path: 'preferences',
+  path: 'loginStatus',
 });
 
-const { width, height } = Dimensions.get('window');
+console.log("URI: " ,  redirectUri);
 
 const HomeScreen: React.FC = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  // Setup the Auth request
+  const [request, response, promptAsync] = useAuthRequest(
+    {
+      clientId,
+      redirectUri,
+      scopes: ['openid', 'profile', 'email'], // Adjust the scopes you need
+      usePKCE: true,
+      prompt: 'login'
+    },
+    { authorizationEndpoint: `https://${domain}/authorize` }
+  );
+
   const handleUserRegistration = async (user) => {
+    console.log('User Info:', user);
     const { sub: token, nickname: Nickname, email: Email } = user;
+    console.log('Token:', token);
+    console.log('Nickname:', Nickname);
+    console.log('Email:', Email);
     const url = 'http://localhost:3000/sign-up';
 
     try {
-      const response = await fetch(url, {
+      const checkResponse = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ auth_token: token, nickname: Nickname, email: Email }),
       });
 
-      const data = await response.json();
-      if (data.message === 'Username or email is already registered') {
-        const activationStatusResponse = await fetch('http://localhost:3000/check-login', {
+      const checkData = await checkResponse.json();
+
+      const setUsernameResponse = await fetch('http://localhost:3000/set-username', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: Nickname }),
+      });
+
+      const setUsernameData = await setUsernameResponse.json();
+      console.log('Username set successfully');
+      router.push('/mynews');
+
+      if (checkData.message === 'Username or email is already registered') {
+        const activationstatus = await fetch('http://localhost:3000/check-login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: Nickname, auth_token: token }),
         });
 
-        const activationStatusData = await activationStatusResponse.json();
-        if (activationStatusData.message === 'Account is deactivated') {
+        const activationstatusData = await activationstatus.json();
+
+        if (activationstatusData.message === 'Account is deactivated') {
           router.push('/home');
         } else {
           router.push('/mynews');
         }
       } else {
-        await fetch('http://localhost:3000/set-username', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: Nickname }),
-        });
         router.push('/preferences');
       }
     } catch (error) {
@@ -67,9 +80,10 @@ const HomeScreen: React.FC = () => {
     }
   };
 
-  const exchangeToken = async (code) => {
+  const exchangeToken = async (code: string) => {
+    const tokenEndpoint = `https://${domain}/oauth/token`;
+
     try {
-      const tokenEndpoint = `https://${domain}/oauth/token`;
       const response = await fetch(tokenEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -84,88 +98,94 @@ const HomeScreen: React.FC = () => {
       if (!response.ok) throw new Error('Token exchange failed');
 
       const data = await response.json();
+
       const userInfoResponse = await fetch(`https://${domain}/userinfo`, {
         headers: { Authorization: `Bearer ${data.access_token}` },
       });
 
       if (!userInfoResponse.ok) throw new Error('User info fetch failed');
+
       const user = await userInfoResponse.json();
       await handleUserRegistration(user);
     } catch (error) {
       console.error('Error during token exchange:', error);
       setErrorMessage('Failed to authenticate.');
+      throw error;
     }
   };
 
-  const handleLogin = () => {
-    if (Platform.OS !== 'web') {
-      setErrorMessage('Login is not supported on non-web platforms yet.');
-      return;
-    }
+  const handleLogin = async () => {
+       setLoading(true);
+       setErrorMessage('');
+      if(Platform.OS == "web"){
+          const authWindow = window.open(
+                `https://${domain}/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=openid profile email&prompt=login`,
+                'Auth0 Login',
+                'width=500,height=600'
+              );
 
-    setLoading(true);
-    setErrorMessage('');
+              const interval = setInterval(() => {
+                try {
+                  if (authWindow && authWindow.closed) {
+                    clearInterval(interval);
+                    setLoading(false);
+                  }
 
-    const authWindow = window.open(
-      `https://${domain}/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=openid profile email&prompt=login`,
-      'Auth0 Login',
-      'width=500,height=600'
-    );
+                  if (authWindow && authWindow.location.href.includes(redirectUri)) {
+                    const params = new URL(authWindow.location.href).searchParams;
+                    const code = params.get('code');
 
-    const interval = setInterval(() => {
-      try {
-        if (authWindow && authWindow.closed) {
-          clearInterval(interval);
-          setLoading(false);
-        }
+                    if (code) {
+                      clearInterval(interval);
+                      authWindow.close();
 
-        if (authWindow && authWindow.location.href.includes(redirectUri)) {
-          const params = new URL(authWindow.location.href).searchParams;
-          const code = params.get('code');
-
-          if (code) {
-            clearInterval(interval);
-            authWindow.close();
-            exchangeToken(code).catch((error) => {
-              setErrorMessage('Failed to complete login.');
-              console.error(error);
-            });
+                      exchangeToken(code)
+                        .catch((error) => {
+                          setErrorMessage('Failed to complete login.');
+                          console.error(error);
+                        });
+                    }
+                  }
+                } catch (error) {
+                  // Ignore cross-origin errors
+                }
+              }, 500);
+          }else{
+                try {
+                  if (request) {
+                    const result = await promptAsync();
+                    exchangeToken(result.params.code)
+                    console.log('Prompt Async Result:', result.params.code);
+                  }
+                } catch (error) {
+                  setLoading(false);
+                  console.error('Error during login process', error);
+                  setErrorMessage('Login failed');
+                }
           }
-        }
-      } catch {
-        // Ignore cross-origin errors
-      }
-    }, 500);
-  };
+
+    };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View style={styles.container}>
-          <Image
-            source={require('../assets/images/logo.png')}
-            style={styles.logoImage}
-          />
-          <View style={styles.bottomContainer}>
-            <View style={styles.box}>
-              <TouchableOpacity
-                style={styles.loginButton}
-                onPress={handleLogin}
-                disabled={loading}
-              >
-                <Text style={styles.loginText}>
-                  {loading ? 'Loading...' : 'Login'}
-                </Text>
-              </TouchableOpacity>
-              {errorMessage && <Text style={styles.errorMessage}>{errorMessage}</Text>}
-            </View>
-          </View>
+    <View style={styles.container}>
+      <Image source={require('../assets/images/logo.png')} style={styles.logoImage} />
+      <View style={styles.bottomContainer}>
+        <View style={styles.box}>
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            {loading ? (
+              <Text style={styles.loginText}>Loading...</Text>
+            ) : (
+              <Text style={styles.loginText}>Login</Text>
+            )}
+          </TouchableOpacity>
+          {errorMessage ? <Text style={styles.errorMessage}>{errorMessage}</Text> : null}
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </View>
+    </View>
   );
 };
 
@@ -177,46 +197,41 @@ const styles = StyleSheet.create({
     backgroundColor: '#8A7FDC',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
   },
   logoImage: {
-    width: width * 0.7,
-    height: height * 0.15,
-    resizeMode: 'contain',
-    marginBottom: 20,
+    width: 300,
+    height: 100,
   },
   bottomContainer: {
     width: '100%',
     alignItems: 'center',
-    marginTop: 20,
+    position: 'absolute',
+    bottom: 0,
   },
   box: {
     backgroundColor: '#F7B8D2',
-    paddingVertical: 30,
-    paddingHorizontal: 20,
+    paddingVertical: 40,
+    paddingHorizontal: 40,
     borderRadius: 15,
     alignItems: 'center',
-    width: '90%',
+    width: '100%',
+    borderTopLeftRadius: 15,
+    borderTopRightRadius: 15,
   },
   loginButton: {
     backgroundColor: '#8F80E0',
-    paddingVertical: 14,
-    paddingHorizontal: 30,
+    paddingVertical: 12,
+    paddingHorizontal: 50,
     borderRadius: 25,
     marginBottom: 10,
-    width: '80%',
-    alignItems: 'center',
   },
   loginText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
-    textAlign: 'center',
   },
   errorMessage: {
     color: 'red',
     marginTop: 10,
-    fontSize: 14,
-    textAlign: 'center',
   },
 });

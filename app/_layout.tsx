@@ -8,7 +8,6 @@ const Layout: React.FC = () => {
     useEffect(() => {
         router.push('/home');
     }, [router]);
-
     return (
         <View style={{ flex: 1 }}>
             <Slot />
