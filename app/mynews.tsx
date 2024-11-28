@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   tweetCard: {
-    backgroundColor: '#3b3b3b',
+    backgroundColor: '#2A2B2E',
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     overflow: 'hidden',
-    width:500,
+    width: 500,
     alignSelf: 'center',
   },
   tweetUsername: {
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
   },
   tweetText: {
     fontSize: 14,
-    color: '#CDCDCD',
+    color: '#A9A9A9',
     lineHeight: 20,
   },
   tweetDate: {
@@ -413,8 +413,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   tweetImage: {
-    width: '100%',
-    height: 150,
+    height: 300,
+    width: 'auto',
     resizeMode: 'contain',
   },
 });
