@@ -12,7 +12,7 @@ const LoginScreen = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [userInfo, setUserInfo] = useState(null);
 
-  const redirectUri = 'http://localhost:8081/preferences';
+  const redirectUri = 'http://localhost:8081/loginStatus';
 
   const exchangeToken = async (code) => {
     const tokenEndpoint = `https://${domain}/oauth/token`;

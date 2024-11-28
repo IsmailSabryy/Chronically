@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
 
@@ -84,11 +84,14 @@ const TrendingScreen: React.FC = () => {
         // Infer type by checking the presence of `Tweet_Link`
         if (item.Tweet_Link) handleContentPress(item);
       }}
-      style={styles.contentCard}
+      style={styles.tweetCard}
     >
-      <Text style={styles.contentTitle}>{item.Tweet || item.headline}</Text>
-      <Text style={styles.contentAuthor}>{item.Username || item.authors}</Text>
-      <Text style={styles.contentDate}>{formatToUTCT(item.Created_At)}</Text>
+        <Image source={{ uri: item.Media_URL }} style={styles.tweetImage} />
+        <Text style={styles.tweetUsername}>{item.Username}</Text>
+        <Text style={styles.tweetDate}>{formatToUTCT(item.Created_At)}</Text>
+        <Text style={styles.tweetText} numberOfLines={3} ellipsizeMode="tail">
+          {item.Tweet}
+        </Text>
     </TouchableOpacity>
   );
 
@@ -181,31 +184,39 @@ const styles = StyleSheet.create({
   listContainer: {
     paddingTop: 20,
   },
-  contentCard: {
-    backgroundColor: '#F0F8FF',
-    borderRadius: 10,
-    marginBottom: 15,
-    padding: 10,
+  tweetCard: {
+    backgroundColor: '#3b3b3b',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    overflow: 'hidden',
+    width:500,
+    alignSelf: 'center',
   },
-  contentTitle: {
-    fontSize: 16,
+  tweetUsername: {
+    color: '#8A7FDC',
+    fontSize: 18,
+    marginBottom: 4,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
   },
-  contentAuthor: {
+  tweetText: {
     fontSize: 14,
-    color: '#555',
-    marginBottom: 5,
+    color: '#CDCDCD',
+    lineHeight: 20,
   },
-  contentDate: {
-    fontSize: 12,
-    color: '#888',
-    marginBottom: 10,
-  },
-  contentDescription: {
+  tweetDate: {
     fontSize: 14,
-    color: '#555',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  tweetImage: {
+    width: '100%',
+    height: 150,
+    resizeMode: 'contain',
   },
 });
 

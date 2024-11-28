@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, FlatList, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, FlatList, Alert, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
 
@@ -186,9 +186,12 @@ const HomePage: React.FC = () => {
     } else if (item.type === 'tweet') {
       return (
         <TouchableOpacity style={styles.tweetCard} onPress={() => handleContentPress(item)}>
-          <Text style={styles.tweetText}>{item.Tweet}</Text>
+          <Image source={{ uri: item.Media_URL }} style={styles.tweetImage} />
           <Text style={styles.tweetUsername}>{item.Username}</Text>
           <Text style={styles.tweetDate}>{formatToUTCT(item.Created_At)}</Text>
+          <Text style={styles.tweetText} numberOfLines={3} ellipsizeMode="tail">
+            {item.Tweet}
+          </Text>
         </TouchableOpacity>
       );
     }
@@ -265,6 +268,8 @@ const HomePage: React.FC = () => {
         keyExtractor={(item, index) => `${item.type}-${index}`}
         contentContainerStyle={styles.contentContainer}
       />
+
+
     </View>
   );
 };
@@ -325,21 +330,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   filterButton: {
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#FFFF',
     borderRadius: 20,
     paddingVertical: 5,
     paddingHorizontal: 15,
     marginHorizontal: 5,
+    borderWidth: 2, 
+    borderColor: '#E0E0E0',
   },
   filterButtonActive: {
     backgroundColor: '#A1A0FE',
+    borderColor:'#FFFFFF'
   },
   filterText: {
     color: '#000000',
   },
   filterTextActive: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
   },
   contentContainer: {
     paddingHorizontal: 15,
@@ -349,6 +356,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 15,
     padding: 10,
+    alignSelf: 'center',
   },
   articleTitle: {
     fontSize: 16,
@@ -369,23 +377,37 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   tweetCard: {
-    backgroundColor: '#F0F8FF',
-    borderRadius: 10,
-    marginBottom: 15,
-    padding: 10,
+    backgroundColor: '#3b3b3b',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    overflow: 'hidden',
+    width:500,
+    alignSelf: 'center',
   },
   tweetUsername: {
-    fontSize: 14,
-    color: '#333333',
+    color: '#8A7FDC',
+    fontSize: 18,
+    marginBottom: 4,
+    fontWeight: 'bold',
   },
   tweetText: {
     fontSize: 14,
-    color: '#555555',
-    marginTop: 5,
-    fontWeight: 'bold',
+    color: '#CDCDCD',
+    lineHeight: 20,
   },
   tweetDate: {
-    fontSize: 12,
-    color: '#777777',
+    fontSize: 14,
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  tweetImage: {
+    width: '100%',
+    height: 150,
+    resizeMode: 'contain',
   },
 });

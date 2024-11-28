@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 
 const domain = 'dev-vybmc25ljbvs5mu6.us.auth0.com';
 const clientId = 'vZGfiRpR9T87u5tKBhqZVUxeO2I6kJih';
-const redirectUri = 'http://localhost:8081/preferences';
+const redirectUri = 'http://localhost:8081/loginStatus';
 
 const HomeScreen: React.FC = () => {
   const router = useRouter();
