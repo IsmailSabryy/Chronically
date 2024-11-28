@@ -178,6 +178,7 @@ const HomePage: React.FC = () => {
     if (item.type === 'article') {
       return (
         <TouchableOpacity style={styles.articleCard} onPress={() => handleContentPress(item)}>
+          <Image source={require('../assets/images/logo.png')} style={styles.logoImage} />
           <Text style={styles.articleTitle}>{item.headline}</Text>
           <Text style={styles.articleAuthor}>{item.authors}</Text>
           <Text style={styles.articleDate}>{ formatToUTCA(item.date)}</Text>
@@ -278,6 +279,11 @@ export default HomePage;
 
 
 const styles = StyleSheet.create({
+  logoImage: {
+    width: 300,
+    height: 100,
+    alignSelf:'center',
+  },
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
@@ -352,11 +358,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
   },
   articleCard: {
-    backgroundColor: '#EFEFEF',
+    backgroundColor: '#8A7FDC',
     borderRadius: 10,
     marginBottom: 15,
     padding: 10,
     alignSelf: 'center',
+    width: 500,
   },
   articleTitle: {
     fontSize: 16,
@@ -365,11 +372,11 @@ const styles = StyleSheet.create({
   },
   articleAuthor: {
     fontSize: 12,
-    color: '#777777',
+    color: '#333333',
   },
   articleDate: {
     fontSize: 12,
-    color: '#777777',
+    color: '#333333',
   },
   articleDescription: {
     fontSize: 14,
