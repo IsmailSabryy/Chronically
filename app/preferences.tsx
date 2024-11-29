@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, ScrollView, Alert, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 
 type IndustryType = string;
@@ -21,10 +21,14 @@ export default function PreferencesScreen() {
     'BLACK VOICES', 'ARTS', 'WOMEN',
   ];
 
+const domaindynamo = Platform.OS === 'web'
+  ?  'http://localhost:3000' // Use your local IP address for web
+  : 'http://192.168.100.103:3000';       // Use localhost for mobile emulator or device
+
   useEffect(() => {
     const fetchUsername = async () => {
       try {
-        const response = await fetch('exp://192.168.100.103:3000/get-username');
+        const response = await fetch(`${domaindynamo}/get-username`);
         const data = await response.json();
         if (data.username) {
           setUsername(data.username);
@@ -41,7 +45,7 @@ export default function PreferencesScreen() {
       try {
         if (username === 'Guest') return; // Ensure username is set
     
-        const response = await fetch('exp://192.168.100.103:3000/check-preferences', {
+        const response = await fetch(`${domaindynamo}/check-preferences`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username }),
@@ -81,7 +85,7 @@ export default function PreferencesScreen() {
   };
   const handleResetPreferences = async () => {
     try {
-      const response = await fetch('exp://192.168.100.103:3000/delete-preferences', {
+      const response = await fetch(`${domaindynamo}/delete-preferences`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username }),
@@ -105,7 +109,7 @@ export default function PreferencesScreen() {
 
     try {
       const addPreferencePromises = selectedOptions.map(async (preference) => {
-        const response = await fetch('exp://192.168.100.103:3000/add-preference', {
+        const response = await fetch(`${domaindynamo}/add-preference`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

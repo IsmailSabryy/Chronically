@@ -8,9 +8,14 @@ import {
   Alert,
   ScrollView,
   Linking,
+  Platform
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
+
+const domaindynamo = Platform.OS === 'web'
+  ?  'http://localhost:3000' // Use your local IP address for web
+  : 'http://192.168.100.103:3000';       // Use localhost for mobile emulator or device
 
 const TweetPage: React.FC = () => {
   const [tweetData, setTweetData] = useState<any>(null);
@@ -22,7 +27,7 @@ const TweetPage: React.FC = () => {
 
   const fetchTweetLink = async () => {
     try {
-      const response = await fetch('http://localhost:3000/get-tweet-link');
+      const response = await fetch(`${domaindynamo}/get-tweet-link`);
       const data = await response.json();
       if (data.tweetLink) {
         fetchTweetDetails(data.tweetLink);
@@ -37,7 +42,7 @@ const TweetPage: React.FC = () => {
 
   const fetchTweetDetails = async (link: string) => {
     try {
-      const response = await fetch('http://localhost:3000/get-tweet-by-link', {
+      const response = await fetch(`${domaindynamo}/get-tweet-by-link`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ link }),

@@ -7,6 +7,7 @@ import {
   ScrollView,
   Alert,
   Linking,
+  Platform
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -19,6 +20,12 @@ const formatToUTCA = (isoDate: string) => {
   return `${day}-${month}-${year}`;
 };
 
+const domaindynamo = Platform.OS === 'web'
+  ?  'http://localhost:3000' // Use your local IP address for web
+  : 'http://192.168.100.103:3000';       // Use localhost for mobile emulator or device
+
+console.log('API Domain:', domaindynamo);
+
 const ArticlePage: React.FC = () => {
   const [articleData, setArticleData] = useState<any>(null);
   const [relatedArticles, setRelatedArticles] = useState<any[]>([]);
@@ -30,7 +37,7 @@ const ArticlePage: React.FC = () => {
 
   const fetchArticleIdAndDetails = async () => {
     try {
-      const idResponse = await fetch('http://localhost:3000/get-article-id');
+      const idResponse = await fetch(`${domaindynamo}/get-article-id`);
       if (!idResponse.ok) {
         throw new Error('Failed to fetch article ID');
       }
@@ -49,7 +56,7 @@ const ArticlePage: React.FC = () => {
 
   const fetchArticleDetails = async (id: number) => {
     try {
-      const response = await fetch('http://localhost:3000/get-article-by-id', {
+      const response = await fetch(`${domaindynamo}/get-article-by-id`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
@@ -73,7 +80,7 @@ const ArticlePage: React.FC = () => {
 
   const fetchRelatedArticles = async (id: number) => {
     try {
-      const response = await fetch('http://localhost:3000/get-related', {
+      const response = await fetch(`${domaindynamo}/get-related`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
@@ -103,7 +110,7 @@ const ArticlePage: React.FC = () => {
 
   const handleRelatedArticlePress = async (id: number) => {
     try {
-      const response = await fetch('http://localhost:3000/set-article-id', {
+      const response = await fetch(`${domaindynamo}/set-article-id`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),

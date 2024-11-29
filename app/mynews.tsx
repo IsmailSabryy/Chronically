@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, FlatList, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, FlatList, Alert, Image , Platform} from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
+import CustomButton from '../components/ui/ChronicallyButton';
 
 const HomePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('My News');
@@ -20,18 +21,24 @@ const HomePage: React.FC = () => {
 
     return `${hours}:${minutes} ${day}-${month}-${year}`;
   };
-  const formatToUTCA = (isoDate: string) => { 
+
+const domaindynamo = Platform.OS === 'web'
+  ?  'http://localhost:3000' // Use your local IP address for web
+  : 'http://192.168.100.103:3000';       // Use localhost for mobile emulator or device
+
+
+  const formatToUTCA = (isoDate: string) => {
     const date = new Date(isoDate);
     const day = String(date.getUTCDate()).padStart(2, '0');
     const month = String(date.getUTCMonth() + 1).padStart(2, '0');
     const year = date.getUTCFullYear();
-  
+
     return `${day}-${month}-${year}`;
   };
-  
+
   const fetchUsername = async () => {
     try {
-      const response = await fetch('http://localhost:3000/get-username');
+      const response = await fetch(`${domaindynamo}/get-username`);
       const data = await response.json();
       if (data.username) {
         fetchPreferences(data.username);
@@ -46,7 +53,7 @@ const HomePage: React.FC = () => {
 
   const fetchPreferences = async (username: string) => {
     try {
-      const response = await fetch('http://localhost:3000/check-preferences', {
+      const response = await fetch(`${domaindynamo}/check-preferences`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username }),
@@ -71,8 +78,8 @@ const HomePage: React.FC = () => {
       const [articlesResponse, tweetsResponse] = await Promise.all([
         fetch(
           isSeeAll
-            ? 'http://localhost:3000/get-allarticles'
-            : 'http://localhost:3000/get-articles',
+            ? `${domaindynamo}/get-allarticles`
+            : `${domaindynamo}/get-articles`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -81,8 +88,8 @@ const HomePage: React.FC = () => {
         ),
         fetch(
           isSeeAll
-            ? 'http://localhost:3000/get-alltweets'
-            : 'http://localhost:3000/get-tweets',
+            ? `${domaindynamo}/get-alltweets`
+            : `${domaindynamo}/get-tweets`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -133,7 +140,7 @@ const HomePage: React.FC = () => {
   const handleContentPress = async (item: any) => {
     if (item.type === 'tweet') {
       try {
-        const response = await fetch('http://localhost:3000/set-tweet-link', {
+        const response = await fetch(`${domaindynamo}/set-tweet-link`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ link: item.Tweet_Link }),
@@ -151,7 +158,7 @@ const HomePage: React.FC = () => {
       }
     } else if (item.type === 'article') {
       try {
-        const response = await fetch('http://localhost:3000/set-article-id', {
+        const response = await fetch(`${domaindynamo}/set-article-id`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: item.id }),
@@ -178,6 +185,7 @@ const HomePage: React.FC = () => {
     if (item.type === 'article') {
       return (
         <TouchableOpacity style={styles.articleCard} onPress={() => handleContentPress(item)}>
+          <Image source={require('../assets/images/logo.png')} style={styles.logoImage} />
           <Text style={styles.articleTitle}>{item.headline}</Text>
           <Text style={styles.articleAuthor}>{item.authors}</Text>
           <Text style={styles.articleDate}>{ formatToUTCA(item.date)}</Text>
@@ -186,13 +194,38 @@ const HomePage: React.FC = () => {
     } else if (item.type === 'tweet') {
       return (
         <TouchableOpacity style={styles.tweetCard} onPress={() => handleContentPress(item)}>
-          <Text style={styles.tweetText}>{item.Tweet}</Text>
+          <Image source={{ uri: item.Media_URL }} style={styles.tweetImage} />
           <Text style={styles.tweetUsername}>{item.Username}</Text>
           <Text style={styles.tweetDate}>{formatToUTCT(item.Created_At)}</Text>
+          <Text style={styles.tweetText} numberOfLines={3} ellipsizeMode="tail">
+            {item.Tweet}
+          </Text>
         </TouchableOpacity>
       );
     }
     return null;
+  };
+  const [isButtonVisible, setIsButtonVisible] = useState(true);
+
+  const handleScroll = (event: any) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    setIsButtonVisible(offsetY < 100);
+  };
+
+  const handleHomePress = () => {
+    console.log(router.push('/trending'));
+  };
+
+  const handleBookmarkPress = () => {
+    console.log('Bookmark button pressed!');
+  };
+
+  const handleAddressBookPress = () => {
+    console.log('Address Book button pressed!');
+  };
+
+  const handleSearchPress = () => {
+    console.log('Search button pressed!');
   };
 
   return (
@@ -264,7 +297,20 @@ const HomePage: React.FC = () => {
         renderItem={renderContentCard}
         keyExtractor={(item, index) => `${item.type}-${index}`}
         contentContainerStyle={styles.contentContainer}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       />
+
+      {isButtonVisible && (
+        <CustomButton
+          barButtons={[
+            { iconName: 'home', onPress: handleHomePress },
+            { iconName: 'bookmark', onPress: handleBookmarkPress },
+            { iconName: 'address-book', onPress: handleAddressBookPress },
+            { iconName: 'search', onPress: handleSearchPress },
+          ]}
+        />
+      )}
     </View>
   );
 };
@@ -273,6 +319,11 @@ export default HomePage;
 
 
 const styles = StyleSheet.create({
+  logoImage: {
+    width: 300,
+    height: 100,
+    alignSelf:'center',
+  },
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
@@ -325,30 +376,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   filterButton: {
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#FFFF',
     borderRadius: 20,
     paddingVertical: 5,
     paddingHorizontal: 15,
     marginHorizontal: 5,
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
   },
   filterButtonActive: {
     backgroundColor: '#A1A0FE',
+    borderColor:'#FFFFFF'
   },
   filterText: {
     color: '#000000',
   },
   filterTextActive: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
   },
   contentContainer: {
     paddingHorizontal: 15,
   },
   articleCard: {
-    backgroundColor: '#EFEFEF',
+    backgroundColor: '#8A7FDC',
     borderRadius: 10,
     marginBottom: 15,
     padding: 10,
+    alignSelf: 'center',
+    width: 500,
   },
   articleTitle: {
     fontSize: 16,
@@ -357,11 +412,11 @@ const styles = StyleSheet.create({
   },
   articleAuthor: {
     fontSize: 12,
-    color: '#777777',
+    color: '#333333',
   },
   articleDate: {
     fontSize: 12,
-    color: '#777777',
+    color: '#333333',
   },
   articleDescription: {
     fontSize: 14,
@@ -369,23 +424,37 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   tweetCard: {
-    backgroundColor: '#F0F8FF',
-    borderRadius: 10,
-    marginBottom: 15,
-    padding: 10,
+    backgroundColor: '#2A2B2E',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    overflow: 'hidden',
+    width: 500,
+    alignSelf: 'center',
   },
   tweetUsername: {
-    fontSize: 14,
-    color: '#333333',
+    color: '#8A7FDC',
+    fontSize: 18,
+    marginBottom: 4,
+    fontWeight: 'bold',
   },
   tweetText: {
     fontSize: 14,
-    color: '#555555',
-    marginTop: 5,
-    fontWeight: 'bold',
+    color: '#A9A9A9',
+    lineHeight: 20,
   },
   tweetDate: {
-    fontSize: 12,
-    color: '#777777',
+    fontSize: 14,
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  tweetImage: {
+    height: 300,
+    width: 'auto',
+    resizeMode: 'contain',
   },
 });

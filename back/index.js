@@ -284,6 +284,29 @@ app.post('/deactivate-user', (req, res) => {
         }
     });
 });
+
+app.post('/reactivate-user', (req, res) => {
+    const { username } = req.body;
+
+    const query = `
+        UPDATE Users_new
+        SET deactivated = 0
+        WHERE username = ?;
+    `;
+
+    pool.query(query, [username], (err, results) => {
+        if (err) {
+            return res.status(500).json({ status: 'Error', message: 'Internal server error' });
+        }
+
+        if (results.affectedRows > 0) {
+            return res.json({ status: 'Success', message: `User ${username} has been reactivated` });
+        } else {
+            return res.status(404).json({ status: 'Error', message: 'User not found' });
+        }
+    });
+});
+
 app.post('/delete-user', (req, res) => {
     const { username } = req.body;
 
@@ -376,7 +399,7 @@ app.post('/delete-preferences', (req, res) => {
     });
 });
 
-app.post('/get-related', (req, res) => { 
+app.post('/get-related', (req, res) => {
     const { id } = req.body;
 
     if (!id) {
@@ -384,8 +407,8 @@ app.post('/get-related', (req, res) => {
     }
 
     const clusterQuery = `
-        SELECT clusterID 
-        FROM Articles 
+        SELECT clusterID
+        FROM Articles
         WHERE id = ?;
     `;
 
@@ -425,9 +448,195 @@ app.post('/get-related', (req, res) => {
         });
     });
 });
+app.post('/follow_Users', (req, res) => {
+    const { follower_username, followed_username } = req.body;
 
+    if (!follower_username || !followed_username) {
+        return res.status(400).json({ status: 'Error', message: 'Both follower_username and followed_username are required.' });
+    }
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    const checkUserQuery = 'SELECT username FROM Users_new WHERE username = ?';
+    pool.query(checkUserQuery, [followed_username], (err, results) => {
+        if (err) {
+            return res.status(500).json({ status: 'Error', error: err.message });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ status: 'Error', message: 'The username you are trying to follow does not exist.' });
+        }
+
+        const followQuery = `
+            INSERT INTO follows (follower_username, followed_username)
+            VALUES (?, ?)
+        `;
+        pool.query(followQuery, [follower_username, followed_username], (err) => {
+            if (err) {
+                if (err.code === 'ER_DUP_ENTRY') {
+                    return res.status(400).json({ status: 'Error', message: 'You are already following this user.' });
+                }
+                return res.status(500).json({ status: 'Error', error: err.message });
+            }
+
+            return res.status(200).json({ status: 'Success', message: 'Successfully followed the user.' });
+        });
+    });
 });
+app.post('/remove_follow_Users', (req, res) => {
+    const { follower_username, followed_username } = req.body;
+
+    if (!follower_username || !followed_username) {
+        return res.status(400).json({ status: 'Error', message: 'Both follower_username and followed_username are required.' });
+    }
+
+    const checkUserQuery = 'SELECT username FROM Users_new WHERE username = ?';
+    pool.query(checkUserQuery, [followed_username], (err, results) => {
+        if (err) {
+            return res.status(500).json({ status: 'Error', error: err.message });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ status: 'Error', message: 'The username you are trying to unfollow does not exist.' });
+        }
+
+        const removeFollowQuery = `
+            DELETE FROM follows
+            WHERE follower_username = ? AND followed_username = ?
+        `;
+        pool.query(removeFollowQuery, [follower_username, followed_username], (err, results) => {
+            if (err) {
+                return res.status(500).json({ status: 'Error', error: err.message });
+            }
+
+            if (results.affectedRows === 0) {
+                return res.status(400).json({ status: 'Error', message: 'You are not following this user.' });
+            }
+
+            return res.status(200).json({ status: 'Success', message: 'Successfully unfollowed the user.' });
+        });
+    });
+});
+app.post('/get_followed_users', (req, res) => {
+    const { follower_username } = req.body;
+
+    if (!follower_username) {
+        return res.status(400).json({ status: 'Error', message: 'follower_username is required.' });
+    }
+
+    const getFollowedQuery = `
+        SELECT followed_username
+        FROM follows
+        WHERE follower_username = ?
+    `;
+
+    pool.query(getFollowedQuery, [follower_username], (err, results) => {
+        if (err) {
+            return res.status(500).json({ status: 'Error', error: err.message });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ status: 'Error', message: 'You are not following any users.' });
+        }
+
+        const followedUsernames = results.map(result => result.followed_username);
+
+        return res.status(200).json({ status: 'Success', followed_usernames: followedUsernames });
+    });
+});
+app.post('/share_articles', (req, res) => {
+    const { username, article_id } = req.body;
+
+    if (!username || !article_id) {
+        return res.status(400).json({ status: 'Error', message: 'Both username and article_id are required.' });
+    }
+
+    const shareArticleQuery = `
+        INSERT INTO shared_articles (username, article_id, shared_at)
+        VALUES (?, ?, CURRENT_TIMESTAMP);
+    `;
+    pool.query(shareArticleQuery, [username, article_id], (err) => {
+        if (err) {
+            return res.status(500).json({ status: 'Error', error: err.message });
+        }
+
+        return res.status(200).json({ status: 'Success', message: 'Article successfully shared.' });
+    });
+});
+app.post('/share_tweets', (req, res) => {
+    const { username, tweet_link } = req.body;
+
+    if (!username || !tweet_link) {
+        return res.status(400).json({ status: 'Error', message: 'Both username and tweet_link are required.' });
+    }
+
+    const shareTweetQuery = `
+        INSERT INTO shared_tweets (username, tweet_link, shared_at)
+        VALUES (?, ?, CURRENT_TIMESTAMP);
+    `;
+
+    pool.query(shareTweetQuery, [username, tweet_link], (err) => {
+        if (err) {
+            return res.status(500).json({ status: 'Error', error: err.message });
+        }
+
+        return res.status(200).json({ status: 'Success', message: 'Tweet successfully shared.' });
+    });
+});
+app.post('/get_shared_content', (req, res) => {
+    const { follower_username } = req.body;
+
+    if (!follower_username) {
+        return res.status(400).json({ status: 'Error', message: 'follower_username is required.' });
+    }
+
+    const getFollowedUsersQuery = `
+        SELECT followed_username
+        FROM follows
+        WHERE follower_username = ?
+    `;
+
+    pool.query(getFollowedUsersQuery, [follower_username], (err, followedUsersResults) => {
+        if (err) {
+            return res.status(500).json({ status: 'Error', error: err.message });
+        }
+
+        if (followedUsersResults.length === 0) {
+            return res.status(404).json({ status: 'Error', message: 'You are not following any users.' });
+        }
+
+        const followedUsernames = followedUsersResults.map(result => result.followed_username);
+        followedUsernames.push(follower_username);
+
+        const getSharedArticlesQuery = `
+            SELECT username, article_id AS content_id, 'article' AS content_type, shared_at
+            FROM shared_articles
+            WHERE username IN (?)
+            UNION
+            SELECT username, tweet_link AS content_id, 'tweet' AS content_type, shared_at
+            FROM shared_tweets
+            WHERE username IN (?)
+            ORDER BY shared_at DESC;
+        `;
+
+        pool.query(getSharedArticlesQuery, [followedUsernames, followedUsernames], (fetchError, sharedContentResults) => {
+            if (fetchError) {
+                return res.status(500).json({ status: 'Error', error: fetchError.message });
+            }
+
+            return res.status(200).json({
+                status: 'Success',
+                shared_content: sharedContentResults
+            });
+        });
+    });
+});
+
+
+//const PORT = process.env.PORT || 3000;
+//app.listen(PORT, () => {
+//    console.log(`Server is running on port ${PORT}`);
+//});
+
+app.listen(3000, '0.0.0.0', () => {
+  console.log('Server running on http://0.0.0.0:3000');
+});
+

@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert, Image, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
+import CustomButton from '../components/ui/ChronicallyButton';
+
+const domaindynamo = Platform.OS === 'web'
+  ?  'http://localhost:3000' // Use your local IP address for web
+  : 'http://192.168.100.103:3000';       // Use localhost for mobile emulator or device
 
 const TrendingScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Trending');
@@ -14,7 +19,7 @@ const TrendingScreen: React.FC = () => {
     setLoading(true);
     setErrorMessage('');
     try {
-      const response = await fetch('http://localhost:3000/get_trending_tweets');
+      const response = await fetch(`${domaindynamo}/get_trending_tweets`);
       const data = await response.json();
       if (data.status === 'Success') {
         setContent(data.data);
@@ -57,7 +62,7 @@ const TrendingScreen: React.FC = () => {
     // Check if the item is a tweet by presence of `Tweet_Link`
     if (item.Tweet_Link) {
       try {
-        const response = await fetch('http://localhost:3000/set-tweet-link', {
+        const response = await fetch(`${domaindynamo}/set-tweet-link`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ link: item.Tweet_Link }),
@@ -84,13 +89,39 @@ const TrendingScreen: React.FC = () => {
         // Infer type by checking the presence of `Tweet_Link`
         if (item.Tweet_Link) handleContentPress(item);
       }}
-      style={styles.contentCard}
+      style={styles.tweetCard}
     >
-      <Text style={styles.contentTitle}>{item.Tweet || item.headline}</Text>
-      <Text style={styles.contentAuthor}>{item.Username || item.authors}</Text>
-      <Text style={styles.contentDate}>{formatToUTCT(item.Created_At)}</Text>
+        <Image source={{ uri: item.Media_URL }} style={styles.tweetImage} />
+        <Text style={styles.tweetUsername}>{item.Username}</Text>
+        <Text style={styles.tweetDate}>{formatToUTCT(item.Created_At)}</Text>
+        <Text style={styles.tweetText} numberOfLines={3} ellipsizeMode="tail">
+          {item.Tweet}
+        </Text>
     </TouchableOpacity>
   );
+
+  const [isButtonVisible, setIsButtonVisible] = useState(true);
+
+  const handleScroll = (event: any) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    setIsButtonVisible(offsetY < 100);
+  };
+
+  const handleHomePress = () => {
+    console.log(router.push('/mynews'));
+  };
+
+  const handleBookmarkPress = () => {
+    console.log('Bookmark button pressed!');
+  };
+
+  const handleAddressBookPress = () => {
+    console.log('Address Book button pressed!');
+  };
+
+  const handleSearchPress = () => {
+    console.log('Search button pressed!');
+  };
 
   return (
     <View style={styles.container}>
@@ -126,6 +157,19 @@ const TrendingScreen: React.FC = () => {
           renderItem={renderContentCard}
           keyExtractor={(item, index) => `${item.Tweet_Link || item.link}-${index}`}
           contentContainerStyle={styles.listContainer}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+        />
+      )}
+
+      {isButtonVisible && (
+        <CustomButton
+          barButtons={[
+            { iconName: 'home', onPress: handleHomePress },
+            { iconName: 'bookmark', onPress: handleBookmarkPress },
+            { iconName: 'address-book', onPress: handleAddressBookPress },
+            { iconName: 'search', onPress: handleSearchPress },
+          ]}
         />
       )}
     </View>
@@ -181,31 +225,39 @@ const styles = StyleSheet.create({
   listContainer: {
     paddingTop: 20,
   },
-  contentCard: {
-    backgroundColor: '#F0F8FF',
-    borderRadius: 10,
-    marginBottom: 15,
-    padding: 10,
+  tweetCard: {
+    backgroundColor: '#2A2B2E',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    overflow: 'hidden',
+    width: 500,
+    alignSelf: 'center',
   },
-  contentTitle: {
-    fontSize: 16,
+  tweetUsername: {
+    color: '#8A7FDC',
+    fontSize: 18,
+    marginBottom: 4,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
   },
-  contentAuthor: {
+  tweetText: {
     fontSize: 14,
-    color: '#555',
-    marginBottom: 5,
+    color: '#A9A9A9',
+    lineHeight: 20,
   },
-  contentDate: {
-    fontSize: 12,
-    color: '#888',
-    marginBottom: 10,
-  },
-  contentDescription: {
+  tweetDate: {
     fontSize: 14,
-    color: '#555',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  tweetImage: {
+    height: 300,
+    width: 'auto',
+    resizeMode: 'contain',
   },
 });
 

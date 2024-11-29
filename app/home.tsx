@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet , Platform} from 'react-native';
 import { useRouter } from 'expo-router';
+import * as Random from 'expo-random';
+import * as Crypto from 'expo-crypto';
 import { makeRedirectUri, useAuthRequest } from 'expo-auth-session';
 
 const domain = 'dev-1uzu6bsvrd2mj3og.us.auth0.com';
@@ -10,6 +12,48 @@ const redirectUri = makeRedirectUri({
   scheme: 'expo',
   path: 'loginStatus',
 });
+
+
+if (typeof Buffer === 'undefined') {
+  global.Buffer = require('buffer').Buffer;
+}
+
+function base64URLEncode(str) {
+  return str
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+}
+
+export const createVerifierChallenge = () => {
+  return new Promise(async (resolve, reject) => {
+    const randomBytes = await Crypto.getRandomBytesAsync(32);
+    const verifier = base64URLEncode(Buffer.from(randomBytes));
+
+    const challengeBase64 = await Crypto.digestStringAsync(
+      Crypto.CryptoDigestAlgorithm.SHA256,
+      verifier,
+      { encoding: Crypto.CryptoEncoding.BASE64 }
+    );
+    const challenge = challengeBase64
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+
+    resolve([verifier, challenge]);
+  });
+};
+
+
+
+
+const domaindynamo = Platform.OS === 'web'
+  ?  'http://localhost:3000' // Use your local IP address for web
+  : 'http://192.168.100.103:3000';       // Use localhost for mobile emulator or device
+
+  console.log('API Domain:', domaindynamo);
+
 
 console.log("URI: " ,  redirectUri);
 
@@ -24,7 +68,7 @@ const HomeScreen: React.FC = () => {
       clientId,
       redirectUri,
       scopes: ['openid', 'profile', 'email'], // Adjust the scopes you need
-      usePKCE: true,
+      usePKCE: false,
       prompt: 'login'
     },
     { authorizationEndpoint: `https://${domain}/authorize` }
@@ -36,7 +80,7 @@ const HomeScreen: React.FC = () => {
     console.log('Token:', token);
     console.log('Nickname:', Nickname);
     console.log('Email:', Email);
-    const url = 'http://localhost:3000/sign-up';
+    const url = `${domaindynamo}/sign-up`;
 
     try {
       const checkResponse = await fetch(url, {
@@ -47,7 +91,7 @@ const HomeScreen: React.FC = () => {
 
       const checkData = await checkResponse.json();
 
-      const setUsernameResponse = await fetch('http://localhost:3000/set-username', {
+      const setUsernameResponse = await fetch(`${domaindynamo}/set-username`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: Nickname }),
@@ -58,7 +102,7 @@ const HomeScreen: React.FC = () => {
       router.push('/mynews');
 
       if (checkData.message === 'Username or email is already registered') {
-        const activationstatus = await fetch('http://localhost:3000/check-login', {
+        const activationstatus = await fetch(`${domaindynamo}/check-login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: Nickname, auth_token: token }),
@@ -82,31 +126,55 @@ const HomeScreen: React.FC = () => {
 
   const exchangeToken = async (code: string) => {
     const tokenEndpoint = `https://${domain}/oauth/token`;
+    console.log('TokenEndpoint: ', tokenEndpoint);
+
+    // Log the request payload for debugging
+    const requestBody = {
+      grant_type: 'authorization_code',
+      client_id: clientId,
+      code,
+       redirect_uri: redirectUri,
+    };
+    console.log('Request Body:', requestBody);
 
     try {
       const response = await fetch(tokenEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          grant_type: 'authorization_code',
-          client_id: clientId,
-          code,
-          redirect_uri: redirectUri,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
-      if (!response.ok) throw new Error('Token exchange failed');
+      // Log the response status and response body (if possible) for debugging
+      console.log('Response Status:', response.status);
+      const responseBody = await response.text(); // Read response body as text to log
+      console.log('Response Body:', responseBody);
 
-      const data = await response.json();
+      if (!response.ok) {
+        // If response is not ok, log the full error message
+        throw new Error(`Token exchange failed with status ${response.status}: ${responseBody}`);
+      }
+
+      const data = JSON.parse(responseBody);
+      console.log('Token Exchange Response:', data);
 
       const userInfoResponse = await fetch(`https://${domain}/userinfo`, {
         headers: { Authorization: `Bearer ${data.access_token}` },
       });
 
-      if (!userInfoResponse.ok) throw new Error('User info fetch failed');
+      // Log the user info response status and body
+      console.log('User Info Response Status:', userInfoResponse.status);
+      const userInfoResponseBody = await userInfoResponse.text();
+      console.log('User Info Response Body:', userInfoResponseBody);
 
-      const user = await userInfoResponse.json();
+      if (!userInfoResponse.ok) {
+        throw new Error(`User info fetch failed with status ${userInfoResponse.status}: ${userInfoResponseBody}`);
+      }
+
+      const user = JSON.parse(userInfoResponseBody);
+      console.log('User Info:', user);
+
       await handleUserRegistration(user);
+
     } catch (error) {
       console.error('Error during token exchange:', error);
       setErrorMessage('Failed to authenticate.');
@@ -153,16 +221,31 @@ const HomeScreen: React.FC = () => {
           }else{
                 try {
                   if (request) {
+                    //  const [verifier, challenge] = await createVerifierChallenge();
+                    // future implementation of added security
+
+
+
                     const result = await promptAsync();
-                    exchangeToken(result.params.code)
-                    console.log('Prompt Async Result:', result.params.code);
+
+                    console.log('PromptAsync Result:', result);
+
+                    if (result && result.params && result.params.code) {
+                      console.log('Authorization Code:', result.params.code);
+
+                      // Exchange token
+                      await exchangeToken(result.params.code);
+                      console.log('Token exchange completed');
+                    } else {
+                      throw new Error('Authorization code not found in result');
+                    }
                   }
                 } catch (error) {
                   setLoading(false);
-                  console.error('Error during login process', error);
+                  console.error('Error during login process:', error);
                   setErrorMessage('Login failed');
                 }
-          }
+}
 
     };
 

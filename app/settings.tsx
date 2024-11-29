@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
+
+const domaindynamo = Platform.OS === 'web'
+  ?  'http://localhost:3000' // Use your local IP address for web
+  : 'http://192.168.100.103:3000';       // Use localhost for mobile emulator or device
 
 const SettingsScreen: React.FC = () => {
   const router = useRouter();
@@ -11,7 +15,7 @@ const SettingsScreen: React.FC = () => {
   useEffect(() => {
     const fetchUsername = async () => {
       try {
-        const response = await fetch('http://localhost:3000/get-username');
+        const response = await fetch(`${domaindynamo}/get-username`);
         const data = await response.json();
         if (data.username) {
           setUsername(data.username);
@@ -39,7 +43,7 @@ const SettingsScreen: React.FC = () => {
 
     router.push('/home');
 
-    fetch('http://localhost:3000/deactivate-user', {
+    fetch(`${domaindynamo}/deactivate-user`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username }),
