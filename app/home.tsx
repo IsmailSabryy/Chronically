@@ -1,66 +1,96 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet, Alert, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 
 const domain = 'dev-vybmc25ljbvs5mu6.us.auth0.com';
 const clientId = 'vZGfiRpR9T87u5tKBhqZVUxeO2I6kJih';
-const redirectUri = 'http://localhost:8081/preferences';
+const redirectUri = 'http://localhost:8081/loginStatus';
 
 const HomeScreen: React.FC = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const handleUserRegistration = async (user) => {
-      console.log('User Info:', user);
-      const { sub: token, nickname: Nickname, email: Email } = user;
-      console.log('Token:', token);
-      console.log('Nickname:', Nickname);
-      console.log('Email:', Email);
-      const url = 'http://localhost:3000/sign-up';
+  const handleReactivation = (Nickname) => {
+    // Send the reactivation request to the server
+    fetch('http://localhost:3000/reactivate-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: Nickname }),
+    })
+      .then(() => {
+        router.push('/mynews');
+      })
+      .catch((error) => {
+        console.error('Error reactivating account:', error);
+      });
+  };
 
-      try {
-        const checkResponse = await fetch(url, {
+  const handleUserRegistration = async (user) => {
+    console.log('User Info:', user);
+    const { sub: token, nickname: Nickname, email: Email } = user;
+    const url = 'http://localhost:3000/sign-up';
+
+    try {
+      const checkResponse = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ auth_token: token, nickname: Nickname, email: Email }),
+      });
+
+      const checkData = await checkResponse.json();
+
+      const setUsernameResponse = await fetch('http://localhost:3000/set-username', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: Nickname }),
+      });
+
+      console.log('Username set successfully');
+      router.push('/mynews');
+
+      if (checkData.message === 'Username or email is already registered') {
+        const activationstatus = await fetch('http://localhost:3000/check-login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ auth_token: token, nickname: Nickname, email: Email }),
+          body: JSON.stringify({ username: Nickname, auth_token: token }),
         });
 
-        const checkData = await checkResponse.json();
+        const activationstatusData = await activationstatus.json();
 
-            const setUsernameResponse = await fetch('http://localhost:3000/set-username', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ username: Nickname }),
-                        });
-
-                        const setUsernameData = await setUsernameResponse.json();
-                        console.log('Username set successfully');
-                        router.push('/mynews');
-
-        if (checkData.message === 'Username or email is already registered') {
-
-            const activationstatus = await fetch('http://localhost:3000/check-login', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({  username: Nickname , auth_token: token }),
-                    });
-
-            const activationstatusData = await activationstatus.json();
-
-            if(activationstatusData.message === 'Account is deactivated'){
-                router.push('/home');
-                }else { router.push('/mynews'); }
-
+        if (activationstatusData.message === 'Account is deactivated') {
+          if (Platform.OS === 'web') {
+            const userConfirmed = window.confirm(
+              'Account Reactivation\n\nYour account is currently deactivated. Would you like to reactivate it?'
+            );
+            if (userConfirmed) {
+              handleReactivation(Nickname);
+            }
+            else{
+              router.push('/home');
+            }
+          } else {
+            Alert.alert(
+              'Account Reactivation',
+              'Your account is currently deactivated. Would you like to reactivate it?',
+              [
+                { text: 'Cancel', onPress: () => console.log('Reactivation canceled') },
+                { text: 'Reactivate', onPress: () => handleReactivation(Nickname) },
+              ],
+              { cancelable: false }
+            );
+          }
+        } else {
+          router.push('/mynews');
         }
-             else {
-          router.push('/preferences');
-        }
-      } catch (error) {
-        console.error('Error during user registration:', error);
-        setErrorMessage('Failed to register user.');
+      } else {
+        router.push('/preferences');
       }
-    };
+    } catch (error) {
+      console.error('Error during user registration:', error);
+      setErrorMessage('Failed to register user.');
+    }
+  };
 
   const exchangeToken = async (code: string) => {
     const tokenEndpoint = `https://${domain}/oauth/token`;
@@ -92,7 +122,6 @@ const HomeScreen: React.FC = () => {
     } catch (error) {
       console.error('Error during token exchange:', error);
       setErrorMessage('Failed to authenticate.');
-      throw error;
     }
   };
 
@@ -121,11 +150,10 @@ const HomeScreen: React.FC = () => {
             clearInterval(interval);
             authWindow.close();
 
-            exchangeToken(code)
-              .catch((error) => {
-                setErrorMessage('Failed to complete login.');
-                console.error(error);
-              });
+            exchangeToken(code).catch((error) => {
+              setErrorMessage('Failed to complete login.');
+              console.error(error);
+            });
           }
         }
       } catch (error) {
