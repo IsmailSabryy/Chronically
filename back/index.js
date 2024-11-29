@@ -284,6 +284,29 @@ app.post('/deactivate-user', (req, res) => {
         }
     });
 });
+
+app.post('/reactivate-user', (req, res) => {
+    const { username } = req.body;
+
+    const query = `
+        UPDATE Users_new
+        SET deactivated = 0
+        WHERE username = ?;
+    `;
+
+    pool.query(query, [username], (err, results) => {
+        if (err) {
+            return res.status(500).json({ status: 'Error', message: 'Internal server error' });
+        }
+
+        if (results.affectedRows > 0) {
+            return res.json({ status: 'Success', message: `User ${username} has been reactivated` });
+        } else {
+            return res.status(404).json({ status: 'Error', message: 'User not found' });
+        }
+    });
+});
+
 app.post('/delete-user', (req, res) => {
     const { username } = req.body;
 
