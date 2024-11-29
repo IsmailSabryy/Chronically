@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
+import CustomButton from '../components/ui/ChronicallyButton';
 
 const TrendingScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Trending');
@@ -95,6 +96,29 @@ const TrendingScreen: React.FC = () => {
     </TouchableOpacity>
   );
 
+  const [isButtonVisible, setIsButtonVisible] = useState(true);
+  
+  const handleScroll = (event: any) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    setIsButtonVisible(offsetY < 100);
+  };
+
+  const handleHomePress = () => {
+    console.log(router.push('/mynews'));
+  };
+
+  const handleBookmarkPress = () => {
+    console.log('Bookmark button pressed!');
+  };
+
+  const handleAddressBookPress = () => {
+    console.log('Address Book button pressed!');
+  };
+
+  const handleSearchPress = () => {
+    console.log('Search button pressed!');
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -129,6 +153,19 @@ const TrendingScreen: React.FC = () => {
           renderItem={renderContentCard}
           keyExtractor={(item, index) => `${item.Tweet_Link || item.link}-${index}`}
           contentContainerStyle={styles.listContainer}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+        />
+      )}
+
+      {isButtonVisible && (
+        <CustomButton
+          barButtons={[
+            { iconName: 'home', onPress: handleHomePress },
+            { iconName: 'bookmark', onPress: handleBookmarkPress },
+            { iconName: 'address-book', onPress: handleAddressBookPress },
+            { iconName: 'search', onPress: handleSearchPress },
+          ]}
         />
       )}
     </View>
@@ -185,7 +222,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   tweetCard: {
-    backgroundColor: '#3b3b3b',
+    backgroundColor: '#2A2B2E',
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -194,7 +231,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     overflow: 'hidden',
-    width:500,
+    width: 500,
     alignSelf: 'center',
   },
   tweetUsername: {
@@ -205,7 +242,7 @@ const styles = StyleSheet.create({
   },
   tweetText: {
     fontSize: 14,
-    color: '#CDCDCD',
+    color: '#A9A9A9',
     lineHeight: 20,
   },
   tweetDate: {
@@ -214,8 +251,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   tweetImage: {
-    width: '100%',
-    height: 150,
+    height: 300,
+    width: 'auto',
     resizeMode: 'contain',
   },
 });

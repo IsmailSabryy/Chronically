@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, FlatList, Alert, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
+import CustomButton from '../components/ui/ChronicallyButton';
 
 const HomePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('My News');
@@ -198,6 +199,28 @@ const HomePage: React.FC = () => {
     }
     return null;
   };
+  const [isButtonVisible, setIsButtonVisible] = useState(true);
+  
+  const handleScroll = (event: any) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    setIsButtonVisible(offsetY < 100);
+  };
+
+  const handleHomePress = () => {
+    console.log(router.push('/trending'));
+  };
+
+  const handleBookmarkPress = () => {
+    console.log('Bookmark button pressed!');
+  };
+
+  const handleAddressBookPress = () => {
+    console.log('Address Book button pressed!');
+  };
+
+  const handleSearchPress = () => {
+    console.log('Search button pressed!');
+  };
 
   return (
     <View style={styles.container}>
@@ -268,9 +291,20 @@ const HomePage: React.FC = () => {
         renderItem={renderContentCard}
         keyExtractor={(item, index) => `${item.type}-${index}`}
         contentContainerStyle={styles.contentContainer}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       />
 
-
+      {isButtonVisible && (
+        <CustomButton
+          barButtons={[
+            { iconName: 'home', onPress: handleHomePress },
+            { iconName: 'bookmark', onPress: handleBookmarkPress },
+            { iconName: 'address-book', onPress: handleAddressBookPress },
+            { iconName: 'search', onPress: handleSearchPress },
+          ]}
+        />
+      )}
     </View>
   );
 };
