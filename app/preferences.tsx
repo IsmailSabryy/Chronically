@@ -24,7 +24,7 @@ export default function PreferencesScreen() {
   useEffect(() => {
     const fetchUsername = async () => {
       try {
-        const response = await fetch('http://localhost:3000/get-username');
+        const response = await fetch('exp://192.168.100.103:3000/get-username');
         const data = await response.json();
         if (data.username) {
           setUsername(data.username);
@@ -41,7 +41,7 @@ export default function PreferencesScreen() {
       try {
         if (username === 'Guest') return; // Ensure username is set
     
-        const response = await fetch('http://localhost:3000/check-preferences', {
+        const response = await fetch('exp://192.168.100.103:3000/check-preferences', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username }),
@@ -81,7 +81,7 @@ export default function PreferencesScreen() {
   };
   const handleResetPreferences = async () => {
     try {
-      const response = await fetch('http://localhost:3000/delete-preferences', {
+      const response = await fetch('exp://192.168.100.103:3000/delete-preferences', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username }),
@@ -105,7 +105,7 @@ export default function PreferencesScreen() {
 
     try {
       const addPreferencePromises = selectedOptions.map(async (preference) => {
-        const response = await fetch('http://localhost:3000/add-preference', {
+        const response = await fetch('exp://192.168.100.103:3000/add-preference', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -11,7 +11,7 @@ const SettingsScreen: React.FC = () => {
   useEffect(() => {
     const fetchUsername = async () => {
       try {
-        const response = await fetch('http://localhost:3000/get-username'); 
+        const response = await fetch('http://localhost:3000/get-username');
         const data = await response.json();
         if (data.username) {
           setUsername(data.username);
