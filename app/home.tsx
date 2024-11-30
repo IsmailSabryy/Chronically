@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet , Platform} from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet , Platform, Alert} from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Random from 'expo-random';
 import * as Crypto from 'expo-crypto';
@@ -62,6 +62,21 @@ const HomeScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  const handleReactivation = (Nickname: string) => {
+      // Send the reactivation request to the server
+      fetch(`${domaindynamo}/reactivate-user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: Nickname }),
+      })
+        .then(() => {
+          router.push('/mynews');
+        })
+        .catch((error) => {
+          console.error('Error reactivating account:', error);
+        });
+    };
+
   // Setup the Auth request
   const [request, response, promptAsync] = useAuthRequest(
     {
@@ -111,7 +126,27 @@ const HomeScreen: React.FC = () => {
         const activationstatusData = await activationstatus.json();
 
         if (activationstatusData.message === 'Account is deactivated') {
-          router.push('/home');
+            if (Platform.OS === 'web') {
+            const userConfirmed = window.confirm(
+              'Account Reactivation\n\nYour account is currently deactivated. Would you like to reactivate it?'
+            );
+            if (userConfirmed) {
+              handleReactivation(Nickname);
+            }
+            else{
+              router.push('/home');
+            }
+          } else {
+            Alert.alert(
+              'Account Reactivation',
+              'Your account is currently deactivated. Would you like to reactivate it?',
+              [
+                { text: 'Cancel', onPress: () => router.push('/home') },
+                { text: 'Reactivate', onPress: () => handleReactivation(Nickname) },
+              ],
+              { cancelable: false }
+            );
+          }
         } else {
           router.push('/mynews');
         }

@@ -7,10 +7,27 @@ import {
   ScrollView,
   Alert,
   Linking,
-  Platform
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
+
+
+const domaindynamo = Platform.OS === 'web'
+  ?  'http://localhost:3000' // Use your local IP address for web
+  : 'http://192.168.100.103:3000';       // Use localhost for mobile emulator or device
+
+
+const ArticlePage: React.FC = () => {
+  const [articleData, setArticleData] = useState<any>(null);
+  const [relatedArticles, setRelatedArticles] = useState<any[]>([]);
+  const [username, setUsername] = useState('');
+  const router = useRouter();
+
+  useEffect(() => {
+    fetchArticleIdAndDetails();
+      fetchUsername();
+  }, []);
 
 const formatToUTCA = (isoDate: string) => {
   const date = new Date(isoDate);
@@ -20,20 +37,7 @@ const formatToUTCA = (isoDate: string) => {
   return `${day}-${month}-${year}`;
 };
 
-const domaindynamo = Platform.OS === 'web'
-  ?  'http://localhost:3000' // Use your local IP address for web
-  : 'http://192.168.100.103:3000';       // Use localhost for mobile emulator or device
 
-console.log('API Domain:', domaindynamo);
-
-const ArticlePage: React.FC = () => {
-  const [articleData, setArticleData] = useState<any>(null);
-  const [relatedArticles, setRelatedArticles] = useState<any[]>([]);
-  const router = useRouter();
-
-  useEffect(() => {
-    fetchArticleIdAndDetails();
-  }, []);
 
   const fetchArticleIdAndDetails = async () => {
     try {
@@ -102,6 +106,46 @@ const ArticlePage: React.FC = () => {
     }
   };
 
+  const handleLike = () => {
+    Alert.alert('Liked', 'You liked this article!');
+  };
+
+  const handleComment = () => {
+    Alert.alert('Comment', 'Comment functionality coming soon!');
+  };
+
+  //article share old
+  const handleShare = async () => {
+    try {
+      const response = await fetch(`${domaindynamo}/get-username`);
+      const data = await response.json();
+      if (data.username) {
+        await fetch(`${domaindynamo}/share_articles`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: data.username,
+            article_id: articleData.id,
+          }),
+        });
+        if (Platform.OS === 'web') {
+          alert('Article shared successfully!');
+        } else {
+          Alert.alert('Success', 'Article shared successfully!');
+        }
+      } else {
+        if (Platform.OS === 'web') {
+          alert('Unable to share article');
+        } else {
+          Alert.alert('Error', 'Unable to share article');
+        }
+      }
+    } catch (error) {
+      console.error('Error sharing article', error);
+      Alert.alert('Error', 'Unable to share article');
+    }
+  };
+
   const handleLinkPress = (link: string) => {
     Linking.openURL(link).catch(() =>
       Alert.alert('Error', 'Failed to open article link.')
@@ -132,6 +176,118 @@ const ArticlePage: React.FC = () => {
     }
   };
 
+
+  const fetchUsername = async () => {
+    try {
+      const response = await fetch(`${domaindynamo}/get-username`);
+      const data = await response.json();
+      if (data.username) {
+        setUsername(data.username);
+      } else {
+        setUsername('');
+      }
+    } catch (error) {
+      console.error('Error fetching username:', error);
+      setUsername('Guest');
+    }
+  };
+
+// const handleSave = async (tweetLink: string) => {
+//     if (username !== '') {
+//       try {
+//         // Make a POST request to the backend to save the tweet
+//         const response = await fetch('http://localhost:3000/save-articles', {
+//           method: 'POST',
+//           headers: { 'Content-Type': 'application/json' },
+//           body: JSON.stringify({
+//             username: username,
+//             tweet_link: tweetLink,
+//           }),
+//         });
+
+//         // Handle the response
+//         if (response.ok) {
+//           if (Platform.OS === 'web') {
+//             alert('Article saved successfully!');
+//           } else {
+//             Alert.alert('Success', 'Article saved successfully!');
+//           }
+//         } else {
+//           // Handle the error if the article couldn't be saved
+//           if (Platform.OS === 'web') {
+//             alert('Error: Article could not be saved');
+//           } else {
+//             }
+//         }
+//       } catch (error) {
+//         console.error('Error saving Article', error);
+//         if (Platform.OS === 'web') {
+//           alert('Error: Unable to save Article');
+//         } else {
+//           Alert.alert('Error', 'Unable to save Article');
+//         }
+//       }
+//     } else {
+//       // Handle the case where the user is not logged in (no username)
+//       if (Platform.OS === 'web') {
+//         alert('Please log in to save Articles');
+//       } else {
+//         Alert.alert('Error', 'Please log in to save Articles');
+//       }
+//     }
+//   };
+
+
+const handleSave = async (tweetLink: string) => {
+  if (username !== '') {
+    try {
+      // Make a POST request to save the article
+      const response = await fetch(`${domaindynamo}/save-articles`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: username,
+          article_id: articleData.id,
+        }),
+      });
+
+      // Log response status and data for debugging
+      const responseData = await response.json();
+      console.log("Server Response:", responseData);
+
+      if (response.ok) {
+        if (Platform.OS === 'web') {
+          alert('Article saved successfully!');
+        } else {
+          Alert.alert('Success', 'Article saved successfully!');
+        }
+      } else {
+        // Handle the error if the article couldn't be saved
+        if (Platform.OS === 'web') {
+          alert(`Error: ${responseData.message || 'Article could not be saved'}`);
+        } else {
+          Alert.alert('Error', responseData.message || 'Article could not be saved');
+        }
+      }
+    } catch (error) {
+      console.error('Error saving Article', error);
+      if (Platform.OS === 'web') {
+        alert('Error: Unable to save Article');
+      } else {
+        Alert.alert('Error', 'Unable to save Article');
+      }
+    }
+  } else {
+    // Handle the case where the user is not logged in (no username)
+    if (Platform.OS === 'web') {
+      alert('Please log in to save Articles');
+    } else {
+      Alert.alert('Error', 'Please log in to save Articles');
+    }
+  }
+};
+
+
   return (
     <ScrollView style={styles.container}>
       <TouchableOpacity style={styles.backIcon} onPress={() => router.back()}>
@@ -156,6 +312,21 @@ const ArticlePage: React.FC = () => {
           >
             <Text style={styles.readMoreText}>Read Full Article</Text>
           </TouchableOpacity>
+
+          <View style={styles.actionIcons}>
+          <TouchableOpacity onPress={() => handleSave(articleData.Article_Link)}>
+            <Icon name="bookmark-outline" size={30} color="#A1A0FE" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleLike}>
+              <Icon name="heart-outline" size={30} color="#A1A0FE" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleComment}>
+              <Icon name="chatbubble-outline" size={30} color="#A1A0FE" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleShare}>
+              <Icon name="share-outline" size={30} color="#A1A0FE" />
+            </TouchableOpacity>
+          </View>
         </View>
       ) : (
         <Text style={styles.loadingText}>Loading article details...</Text>
@@ -175,6 +346,8 @@ const ArticlePage: React.FC = () => {
     </ScrollView>
   );
 };
+
+
 
 const styles = StyleSheet.create({
   container: {
@@ -229,41 +402,35 @@ const styles = StyleSheet.create({
   },
   readMoreButton: {
     backgroundColor: '#A1A0FE',
-    paddingVertical: 10,
     borderRadius: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
     alignItems: 'center',
+    marginBottom: 20,
   },
   readMoreText: {
-    fontSize: 16,
     color: '#FFFFFF',
     fontWeight: 'bold',
   },
-  loadingText: {
-    fontSize: 16,
-    color: '#777',
-    textAlign: 'center',
-    marginTop: 50,
+  actionIcons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
   },
   relatedHeader: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginTop: 30,
-    marginBottom: 10,
-  },
-  relatedContainer: {
-    flexDirection: 'row',
+    marginVertical: 20,
   },
   relatedCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 10,
     padding: 10,
-    marginRight: 15,
+    marginBottom: 15,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 3,
-    width: 200,
   },
   relatedHeadline: {
     fontSize: 16,
@@ -273,6 +440,12 @@ const styles = StyleSheet.create({
   relatedCategory: {
     fontSize: 14,
     color: '#777',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#777',
+    textAlign: 'center',
+    marginTop: 20,
   },
 });
 

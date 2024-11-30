@@ -9,7 +9,6 @@ const domaindynamo = Platform.OS === 'web'
   : 'http://192.168.100.103:3000';       // Use localhost for mobile emulator or device
 
 const TrendingScreen: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('Trending');
   const [content, setContent] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -36,16 +35,8 @@ const TrendingScreen: React.FC = () => {
   };
 
   useEffect(() => {
-    if (activeTab === 'Trending') {
-      fetchTrendingContent();
-    } else if (activeTab === 'My News') {
-      router.push('/mynews');
-    }
-  }, [activeTab]);
-
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
-  };
+    fetchTrendingContent();
+  }, []);
 
   const formatToUTCT = (isoDate: string) => {
     const date = new Date(isoDate);
@@ -59,7 +50,6 @@ const TrendingScreen: React.FC = () => {
   };
 
   const handleContentPress = async (item: any) => {
-    // Check if the item is a tweet by presence of `Tweet_Link`
     if (item.Tweet_Link) {
       try {
         const response = await fetch(`${domaindynamo}/set-tweet-link`, {
@@ -86,7 +76,6 @@ const TrendingScreen: React.FC = () => {
   const renderContentCard = ({ item }: { item: any }) => (
     <TouchableOpacity
       onPress={() => {
-        // Infer type by checking the presence of `Tweet_Link`
         if (item.Tweet_Link) handleContentPress(item);
       }}
       style={styles.tweetCard}
@@ -116,6 +105,7 @@ const TrendingScreen: React.FC = () => {
   };
 
   const handleAddressBookPress = () => {
+      router.push('/followingPage');
     console.log('Address Book button pressed!');
   };
 
@@ -125,27 +115,7 @@ const TrendingScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'My News' && styles.activeTabButton]}
-          onPress={() => handleTabChange('My News')}
-        >
-          <Text style={[styles.tabText, activeTab === 'My News' && styles.activeTabText]}>
-            My News
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'Trending' && styles.activeTabButton]}
-          onPress={() => handleTabChange('Trending')}
-        >
-          <Text style={[styles.tabText, activeTab === 'Trending' && styles.activeTabText]}>
-            Trending
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push('/settings')} style={styles.settingsIcon}>
-          <Icon name="settings-outline" size={24} color="#888" />
-        </TouchableOpacity>
-      </View>
+
 
       {loading ? (
         <Text style={styles.loadingText}>Loading...</Text>
@@ -190,25 +160,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
   },
-  tabButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-  },
   settingsIcon: {
     position: 'absolute',
     right: 20,
-  },
-  tabText: {
-    fontSize: 18,
-    color: '#888',
-  },
-  activeTabButton: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#A1A0FE',
-  },
-  activeTabText: {
-    color: '#333',
-    fontWeight: 'bold',
   },
   loadingText: {
     textAlign: 'center',

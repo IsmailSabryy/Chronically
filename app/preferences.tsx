@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, ScrollView, Alert, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, ScrollView, Alert, Image , Platform} from 'react-native';
 import { useRouter } from 'expo-router';
 
 type IndustryType = string;
@@ -9,22 +9,22 @@ export default function PreferencesScreen() {
   const [username, setUsername] = useState<string>('Guest');
   const router = useRouter();
 
-  const industries: string[] = [
-    'BREAKING NEWS', 'WORLDPOST', 'WORLD NEWS', 'WELLNESS', 'Football', 'Formula1',
-    'POLITICS', 'U.S. NEWS', 'TRAVEL', 'THE WORLDPOST', 'TECH', 'Gaming', 'Health', 'Travel',
-    'TASTE', 'STYLE & BEAUTY', 'STYLE', 'SPORTS', 'SCIENCE',
-    'RELIGION', 'PARENTS', 'PARENTING', 'MONEY', 'WEDDINGS',
-    'MEDIA', 'LATINO VOICES', 'IMPACT', 'HOME & LIVING',
-    'HEALTHY LIVING', 'GREEN', 'GOOD NEWS', 'FOOD & DRINK', 'FIFTY',
-    'ENVIRONMENT', 'ENTERTAINMENT', 'EDUCATION', 'DIVORCE',
-    'CULTURE & ARTS', 'CRIME', 'COMEDY', 'COLLEGE', 'BUSINESS',
-    'BLACK VOICES', 'ARTS', 'WOMEN',
-  ];
+  const industriesByCategory: Record<string, string[]> = {
+    "News": ['BREAKING NEWS', 'WORLDPOST', 'WORLD NEWS', 'POLITICS', 'U.S. NEWS'],
+    "Health & Wellness": ['WELLNESS', 'HEALTHY LIVING', 'HEALTH'],
+    "Sports": ['Football', 'Formula1', 'SPORTS'],
+    "Technology & Gaming": ['TECH', 'Gaming'],
+    "Lifestyle": ['STYLE & BEAUTY', 'STYLE', 'TRAVEL', 'HOME & LIVING', 'FOOD & DRINK'],
+    "Arts & Entertainment": ['ENTERTAINMENT', 'CULTURE & ARTS', 'COMEDY', 'ARTS'],
+    "Other": ['MONEY', 'SCIENCE', 'PARENTING', 'CRIME', 'DIVORCE', 'WOMEN'],
+  };
 
-const domaindynamo = Platform.OS === 'web'
-  ?  'http://localhost:3000' // Use your local IP address for web
-  : 'http://192.168.100.103:3000';       // Use localhost for mobile emulator or device
+  const domaindynamo = Platform.OS === 'web'
+    ?  'http://localhost:3000' // Use your local IP address for web
+    : 'http://192.168.100.103:3000';       // Use localhost for mobile emulator or device
 
+
+  // Fetch user data and preferences on mount
   useEffect(() => {
     const fetchUsername = async () => {
       try {
@@ -40,41 +40,40 @@ const domaindynamo = Platform.OS === 'web'
         setUsername('Guest');
       }
     };
-  
+
     const fetchPreferences = async () => {
       try {
-        if (username === 'Guest') return; // Ensure username is set
-    
+        if (username === 'Guest') return;
+
         const response = await fetch(`${domaindynamo}/check-preferences`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username }),
         });
-    
+
         const data = await response.json();
-    
+
         if (data.status === 'Success' && Array.isArray(data.data)) {
           const preferences = data.data.map((item) => item.preference);
           setSelectedOptions(preferences.length ? preferences : []);
         } else {
-          setSelectedOptions([]); 
+          setSelectedOptions([]);
         }
       } catch (error) {
         console.error('Error fetching preferences:', error);
-        setSelectedOptions([]); // Reset state on error
+        setSelectedOptions([]);
       }
     };
-    
+
     const initializePreferences = async () => {
       await fetchUsername();
       if (username !== 'Guest') {
         await fetchPreferences();
       }
     };
-  
+
     initializePreferences();
   }, [username]);
-  
 
   const toggleOption = (option: IndustryType) => {
     setSelectedOptions((prevSelected) =>
@@ -83,6 +82,7 @@ const domaindynamo = Platform.OS === 'web'
         : [...prevSelected, option]
     );
   };
+
   const handleResetPreferences = async () => {
     try {
       const response = await fetch(`${domaindynamo}/delete-preferences`, {
@@ -90,9 +90,9 @@ const domaindynamo = Platform.OS === 'web'
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username }),
       });
-  
+
       if (response.ok) {
-        setSelectedOptions([]); // Clear UI state
+        setSelectedOptions([]);
       } else {
         console.error('Error resetting preferences:', await response.json());
       }
@@ -100,7 +100,7 @@ const domaindynamo = Platform.OS === 'web'
       console.error('Error resetting preferences:', error);
     }
   };
-  
+
   const handleViewClick = async () => {
     if (selectedOptions.length === 0) {
       Alert.alert('No Preferences', 'Please select at least one preference.');
@@ -151,26 +151,28 @@ const domaindynamo = Platform.OS === 'web'
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
       <View style={styles.container}>
+        <View style={styles.logoContainer}>
+        </View>
         <TouchableOpacity style={styles.resetButton} onPress={handleResetPreferences}>
           <Text style={styles.resetButtonText}>Reset</Text>
         </TouchableOpacity>
         <Text style={styles.heading}>Hi {username},</Text>
         <Text style={styles.subHeading}>What are your preferences from X and other News Sources?</Text>
 
-        {/* Industries Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionHeading}>Industries</Text>
-          <FlatList
-            data={industries}
-            keyExtractor={(item, index) => index.toString()}
-            renderItem={renderOption}
-            numColumns={3}
-            columnWrapperStyle={styles.rowStyle}
-            scrollEnabled={false}
-          />
-        </View>
+        {Object.entries(industriesByCategory).map(([category, options]) => (
+          <View style={styles.section} key={category}>
+            <Text style={styles.sectionHeading}>{category}</Text>
+            <FlatList
+              data={options}
+              keyExtractor={(item, index) => index.toString()}
+              renderItem={renderOption}
+              numColumns={3}
+              columnWrapperStyle={styles.rowStyle}
+              scrollEnabled={false}
+            />
+          </View>
+        ))}
 
-        {/* VIEW Button */}
         <TouchableOpacity style={[styles.optionButton, styles.viewButton]} onPress={handleViewClick}>
           <Text style={[styles.optionText, styles.viewButtonText]}>VIEW</Text>
         </TouchableOpacity>
@@ -178,7 +180,6 @@ const domaindynamo = Platform.OS === 'web'
     </ScrollView>
   );
 }
-
 const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
@@ -189,15 +190,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#F7F9FC',
     padding: 20,
   },
+  logoContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  logo: {
+    width: 150,
+    height: 80,
+  },
   resetButton: {
     position: 'absolute',
     top: 20,
     right: 20,
     backgroundColor: '#FF6F61',
-    padding: 10,
-    borderRadius: 5,
-    zIndex: 10, // Ensure it appears above other elements
-    elevation: 5, // Adds shadow on Android
+    padding: 12,
+    borderRadius: 30,
+    zIndex: 10,
+    elevation: 5,
   },
   resetButtonText: {
     color: '#FFF',
@@ -205,63 +215,87 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   heading: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#000000',
     marginBottom: 10,
   },
   subHeading: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#555555',
     marginBottom: 20,
   },
   section: {
-    marginBottom: 30,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 10,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
   },
   sectionHeading: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
+    color: '#333333',
     marginBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#DDD',
+    paddingBottom: 5,
   },
   rowStyle: {
-    justifyContent: 'space-between',
+    justifyContent: 'space-evenly',
     marginBottom: 10,
   },
   optionButton: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#007BFF',
+    borderColor: '#D1D8E0',
     borderRadius: 20,
-    paddingVertical: 15,
-    marginHorizontal: 5,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginHorizontal: 10,
+    marginVertical: 10,
+    width: 'auto',
     alignItems: 'center',
     justifyContent: 'center',
-    flex: 1,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
   },
   selectedOptionButton: {
     backgroundColor: '#F7B8D2',
+    borderColor: '#F7B8D2',
+    transform: [{ scale: 1.05 }],
+    shadowOpacity: 0.2,
   },
   optionText: {
-    color: '#007BFF',
+    color: '#333',
     fontSize: 14,
-    textAlign: 'center',
-  },
-  selectedOptionText: {
-    color: '#8A7FDC',
     fontWeight: 'bold',
     textAlign: 'center',
+    textTransform: 'capitalize',
+  },
+  selectedOptionText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   viewButton: {
     borderWidth: 1,
     borderColor: '#8A2BE2',
     marginTop: 20,
     alignSelf: 'center',
-    width: '60%',
+    width: '50%',
     backgroundColor: '#8A2BE2',
   },
   viewButtonText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
   },
 });

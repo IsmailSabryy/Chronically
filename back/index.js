@@ -398,7 +398,6 @@ app.post('/delete-preferences', (req, res) => {
         }
     });
 });
-
 app.post('/get-related', (req, res) => {
     const { id } = req.body;
 
@@ -539,9 +538,11 @@ app.post('/get_followed_users', (req, res) => {
 
         const followedUsernames = results.map(result => result.followed_username);
 
-        return res.status(200).json({ status: 'Success', followed_usernames: followedUsernames });
+        return res.status(200).json({ status: 'Success', followedUsernames: followedUsernames });  // corrected here
     });
 });
+
+
 app.post('/share_articles', (req, res) => {
     const { username, article_id } = req.body;
 
@@ -627,6 +628,130 @@ app.post('/get_shared_content', (req, res) => {
                 shared_content: sharedContentResults
             });
         });
+    });
+});
+app.post('/get-similar_users_searched', (req, res) => {
+    const { username } = req.body;
+
+    if (!username) {
+        return res.status(400).json({ status: 'Error', message: 'Username is required.' });
+    }
+
+    const getSimilarUsersQuery = `
+        SELECT username
+        FROM Users_new
+        WHERE username LIKE ?;
+    `;
+
+    const searchPattern = `%${username}%`;
+
+    pool.query(getSimilarUsersQuery, [searchPattern], (err, results) => {
+        if (err) {
+            return res.status(500).json({ status: 'Error', error: err.message });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ status: 'Error', message: 'No similar users found.' });
+        }
+
+        return res.status(200).json({
+            status: 'Success',
+            similar_users: results.map(result => result.username)
+        });
+    });
+});
+app.post('/save-articles', (req, res) => {
+    const { username, article_id } = req.body;
+
+    if (!username || !article_id) {
+        return res.status(400).json({ status: 'Error', message: 'Both username and article_id are required.' });
+    }
+
+    const saveArticleQuery = `
+        INSERT INTO Saved_Articles (username, article_id, saved_time)
+        VALUES (?, ?, CURRENT_TIMESTAMP);
+    `;
+
+    pool.query(saveArticleQuery, [username, article_id], (err) => {
+        if (err) {
+            return res.status(500).json({ status: 'Error', error: err.message });
+        }
+
+        return res.status(200).json({ status: 'Success', message: 'Article successfully saved.' });
+    });
+});
+app.post('/save-tweets', (req, res) => {
+    const { username, tweet_link } = req.body;
+
+    if (!username || !tweet_link) {
+        return res.status(400).json({ status: 'Error', message: 'Both username and tweet_link are required.' });
+    }
+
+    const saveTweetQuery = `
+        INSERT INTO Saved_Tweets (username, tweet_link, saved_time)
+        VALUES (?, ?, CURRENT_TIMESTAMP);
+    `;
+
+    pool.query(saveTweetQuery, [username, tweet_link], (err) => {
+        if (err) {
+            return res.status(500).json({ status: 'Error', error: err.message });
+        }
+
+        return res.status(200).json({ status: 'Success', message: 'Tweet successfully saved.' });
+    });
+});
+app.post('/show-saved', (req, res) => {
+    const { username } = req.body;
+
+    if (!username) {
+        return res.status(400).json({ status: 'Error', message: 'Username is required.' });
+    }
+
+    const showSavedQuery = `
+        SELECT 'article' AS type, article_id AS id, saved_time
+        FROM Saved_Articles
+        WHERE username = ?
+        UNION
+        SELECT 'tweet' AS type, tweet_link AS id, saved_time
+        FROM Saved_Tweets
+        WHERE username = ?
+        ORDER BY saved_time DESC;
+    `;
+
+    pool.query(showSavedQuery, [username, username], (err, results) => {
+        if (err) {
+            return res.status(500).json({ status: 'Error', error: err.message });
+        }
+
+        return res.status(200).json({ status: 'Success', data: results });
+    });
+});
+app.post('/search_content', (req, res) => {
+    const { searchQuery } = req.body;
+
+    if (!searchQuery) {
+        return res.status(400).json({ status: 'Error', message: 'Search query is required.' });
+    }
+
+    const searchQueryFormatted = `%${searchQuery}%`;
+
+    const searchQuerySQL = `
+        SELECT 'article' AS type, id AS id, date AS time
+        FROM Articles
+        WHERE headline LIKE ?
+        UNION
+        SELECT 'tweet' AS type, Tweet_Link AS id, Created_At AS time
+        FROM Tweets
+        WHERE Tweet LIKE ?
+        ORDER BY time DESC;
+    `;
+
+    pool.query(searchQuerySQL, [searchQueryFormatted, searchQueryFormatted], (err, results) => {
+        if (err) {
+            return res.status(500).json({ status: 'Error', error: err.message });
+        }
+
+        return res.status(200).json({ status: 'Success', data: results });
     });
 });
 

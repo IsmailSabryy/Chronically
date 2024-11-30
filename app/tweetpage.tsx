@@ -1,15 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  Alert,
-  ScrollView,
-  Linking,
-  Platform
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, ScrollView, Linking, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
 
@@ -19,11 +9,28 @@ const domaindynamo = Platform.OS === 'web'
 
 const TweetPage: React.FC = () => {
   const [tweetData, setTweetData] = useState<any>(null);
+  const [username, setUsername] = useState('');
   const router = useRouter();
 
   useEffect(() => {
     fetchTweetLink();
+    fetchUsername();
   }, []);
+
+  const fetchUsername = async () => {
+    try {
+      const response = await fetch(`${domaindynamo}/get-username`);
+      const data = await response.json();
+      if (data.username) {
+        setUsername(data.username);
+      } else {
+        setUsername('Guest');
+      }
+    } catch (error) {
+      console.error('Error fetching username:', error);
+      setUsername('Guest');
+    }
+  };
 
   const fetchTweetLink = async () => {
     try {
@@ -59,10 +66,107 @@ const TweetPage: React.FC = () => {
     }
   };
 
+  const fetchSharedContent = async () => {
+    try {
+      // Fetch the username dynamically
+      const response = await fetch(`${domaindynamo}/get-username`);
+      const data = await response.json();
+      const username = data.username || 'Guest'; // Use 'Guest' if no username is found
+
+      // Use the fetched username in your shared content logic
+      if (username !== '') {
+        // Proceed with fetching shared content or performing actions using username
+        const sharedResponse = await fetch(`${domaindynamo}/fetch-shared-content`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username }),
+        });
+
+        const sharedData = await sharedResponse.json();
+        if (sharedData.success) {
+          // Process the shared data
+          console.log('Shared content fetched successfully');
+          // Do something with sharedData...
+        } else {
+          console.error('Failed to fetch shared content');
+        }
+      } else {
+        console.error('Username not found');
+      }
+    } catch (error) {
+      console.error('Error fetching shared content:', error);
+    }
+  };
+
+  const handleShare = async (tweetLink: string) => {
+    if (username !== '') {
+      try {
+        await fetch(`${domaindynamo}/share_tweets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: username,
+            tweet_link: tweetLink,
+          }),
+        });
+        if (Platform.OS === 'web') {
+          alert('Tweet shared successfully!');
+        } else {
+          Alert.alert('Success', 'Tweet shared successfully!');
+        }
+      } catch (error) {
+        console.error('Error sharing article', error);
+        Alert.alert('Error', 'Unable to share tweet');
+      }
+    }
+  };
+
   const handleMediaPress = (tweetLink: string) => {
     Linking.openURL(tweetLink).catch((err) =>
       Alert.alert('Error', 'Failed to open tweet.')
     );
+  };
+
+  const handleSave = async (tweetLink: string) => {
+    if (username !== '') {
+      try {
+        const response = await fetch(`${domaindynamo}/save-tweets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: username,
+            tweet_link: tweetLink,
+          }),
+        });
+
+        if (response.ok) {
+          if (Platform.OS === 'web') {
+            alert('Tweet saved successfully!');
+          } else {
+            Alert.alert('Success', 'Tweet saved successfully!');
+          }
+        } else {
+          if (Platform.OS === 'web') {
+            alert('Error: Tweet could not be saved');
+          } else {
+            Alert.alert('Error', 'Tweet could not be saved');
+          }
+        }
+      } catch (error) {
+        console.error('Error saving tweet', error);
+        if (Platform.OS === 'web') {
+          alert('Error: Unable to save tweet');
+        } else {
+          Alert.alert('Error', 'Unable to save tweet');
+        }
+      }
+    } else {
+      if (Platform.OS === 'web') {
+        alert('Please log in to save tweets');
+      } else {
+        Alert.alert('Error', 'Please log in to save tweets');
+      }
+    }
   };
 
   return (
@@ -111,13 +215,15 @@ const TweetPage: React.FC = () => {
           <Text style={styles.aiExplanationText}>{tweetData.Explanation}</Text>
 
           <View style={styles.actionIcons}>
-            <TouchableOpacity>
-              <Icon name="heart-outline" size={30} color="#A1A0FE" />
+            <TouchableOpacity onPress={() => handleSave(tweetData.Tweet_Link)}>
+              <Icon name="bookmark-outline" size={30} color="#A1A0FE" />
             </TouchableOpacity>
             <TouchableOpacity>
               <Icon name="chatbubble-outline" size={30} color="#A1A0FE" />
             </TouchableOpacity>
-            <TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => handleShare(tweetData.Tweet_Link)}
+            >
               <Icon name="share-outline" size={30} color="#A1A0FE" />
             </TouchableOpacity>
           </View>
@@ -145,7 +251,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   tweetCard: {
-    backgroundColor: '#000000', // Black background for the tweet
+    backgroundColor: '#000000',
     borderRadius: 10,
     padding: 15,
     marginBottom: 20,
@@ -169,31 +275,29 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#FFFFFF', // Set username color to white
+    color: '#FFFFFF',
   },
   timestamp: {
     fontSize: 12,
-    color: '#CCCCCC', // Use a lighter gray for better contrast
+    color: '#CCCCCC',
   },
   tweetText: {
     fontSize: 16,
-    color: '#FFFFFF', // Set tweet text color to white
+    color: '#FFFFFF',
     marginBottom: 10,
   },
   media: {
     width: '100%',
     height: 200,
-    marginTop: 10,
-    borderRadius: 10,
+    marginBottom: 10,
   },
   stats: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 10,
   },
   stat: {
-    fontSize: 14,
     color: '#CCCCCC',
+    fontSize: 12,
   },
   aiExplanationHeader: {
     fontSize: 18,
@@ -202,19 +306,16 @@ const styles = StyleSheet.create({
   },
   aiExplanationText: {
     fontSize: 14,
-    color: '#555',
+    color: '#333333',
     marginBottom: 20,
   },
   actionIcons: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 20,
+    justifyContent: 'space-between',
   },
   loadingText: {
     fontSize: 16,
-    color: '#777',
-    textAlign: 'center',
-    marginTop: 50,
+    color: '#A1A0FE',
   },
 });
 

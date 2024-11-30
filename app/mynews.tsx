@@ -3,10 +3,14 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, FlatList, Alert, 
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
 import CustomButton from '../components/ui/ChronicallyButton';
+import TrendingScreen from '../app/trending'
 
 const HomePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('My News');
   const [preferences, setPreferences] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [content, setContent] = useState<any[]>([]);
+  const [errorMessage, setErrorMessage] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [articlesAndTweets, setArticlesAndTweets] = useState<any[]>([]);
   const [isSeeAll, setIsSeeAll] = useState(false);
@@ -117,12 +121,6 @@ const domaindynamo = Platform.OS === 'web'
     }
   };
 
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
-    if (tab === 'Trending') {
-      router.push('/trending');
-    }
-  };
 
   const handleCategorySelect = (category: string) => {
     setIsSeeAll(false);
@@ -221,6 +219,7 @@ const domaindynamo = Platform.OS === 'web'
   };
 
   const handleAddressBookPress = () => {
+      router.push('/followingPage');
     console.log('Address Book button pressed!');
   };
 
@@ -228,233 +227,239 @@ const domaindynamo = Platform.OS === 'web'
     console.log('Search button pressed!');
   };
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.tabsContainer}>
-          <TouchableOpacity
-            style={[styles.tabButton, activeTab === 'My News' && styles.activeTabButton]}
-            onPress={() => handleTabChange('My News')}
-          >
-            <Text style={[styles.tabText, activeTab === 'My News' && styles.activeTabText]}>
-              My News
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tabButton, activeTab === 'Trending' && styles.activeTabButton]}
-            onPress={() => handleTabChange('Trending')}
-          >
-            <Text style={[styles.tabText, activeTab === 'Trending' && styles.activeTabText]}>
-              Trending
-            </Text>
-          </TouchableOpacity>
-        </View>
-        <TouchableOpacity onPress={() => router.push('/settings')} style={styles.settingsIcon}>
-          <Icon name="settings-outline" size={24} color="#888" />
+ return (
+  <View style={styles.container}>
+    <View style={styles.header}>
+      <View style={styles.tabsContainer}>
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === 'My News' && styles.activeTabButton]}
+          onPress={() => setActiveTab('My News')}
+        >
+          <Text style={[styles.tabText, activeTab === 'My News' && styles.activeTabText]}>
+            My News
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === 'Trending' && styles.activeTabButton]}
+          onPress={() => setActiveTab('Trending')}
+        >
+          <Text style={[styles.tabText, activeTab === 'Trending' && styles.activeTabText]}>
+            Trending
+          </Text>
         </TouchableOpacity>
       </View>
+      <TouchableOpacity onPress={() => router.push('/settings')} style={styles.settingsIcon}>
+        <Icon name="settings-outline" size={24} color="#888" />
+      </TouchableOpacity>
+    </View>
 
-      <View style={styles.filterContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterScroll}
-        >
-          <View style={styles.categoryWrapper}>
-            {preferences.map((category, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.filterButton,
-                  selectedCategory === category && styles.filterButtonActive,
-                ]}
-                onPress={() => handleCategorySelect(category)}
-              >
-                <Text
+    {activeTab === 'Trending' ? (
+      // here trending logic
+      <TrendingScreen />
+    ) : (
+      <>
+        <View style={styles.filterContainer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterScroll}
+          >
+            <View style={styles.categoryWrapper}>
+              {preferences.map((category, index) => (
+                <TouchableOpacity
+                  key={index}
                   style={[
-                    styles.filterText,
-                    selectedCategory === category && styles.filterTextActive,
+                    styles.filterButton,
+                    selectedCategory === category && styles.filterButtonActive,
                   ]}
+                  onPress={() => handleCategorySelect(category)}
                 >
-                  {category}
+                  <Text
+                    style={[
+                      styles.filterText,
+                      selectedCategory === category && styles.filterTextActive,
+                    ]}
+                  >
+                    {category}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity
+                style={[styles.filterButton, isSeeAll && styles.filterButtonActive]}
+                onPress={handleSeeAll}
+              >
+                <Text style={[styles.filterText, isSeeAll && styles.filterTextActive]}>
+                  See All →
                 </Text>
               </TouchableOpacity>
-            ))}
-            <TouchableOpacity
-              style={[styles.filterButton, isSeeAll && styles.filterButtonActive]}
-              onPress={handleSeeAll}
-            >
-              <Text style={[styles.filterText, isSeeAll && styles.filterTextActive]}>
-                See All →
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </View>
+            </View>
+          </ScrollView>
+        </View>
 
-      <FlatList
-        data={articlesAndTweets}
-        renderItem={renderContentCard}
-        keyExtractor={(item, index) => `${item.type}-${index}`}
-        contentContainerStyle={styles.contentContainer}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-      />
-
-      {isButtonVisible && (
-        <CustomButton
-          barButtons={[
-            { iconName: 'home', onPress: handleHomePress },
-            { iconName: 'bookmark', onPress: handleBookmarkPress },
-            { iconName: 'address-book', onPress: handleAddressBookPress },
-            { iconName: 'search', onPress: handleSearchPress },
-          ]}
+        <FlatList
+          data={articlesAndTweets}
+          renderItem={renderContentCard}
+          keyExtractor={(item, index) => `${item.type}-${index}`}
+          contentContainerStyle={styles.contentContainer}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
         />
-      )}
-    </View>
-  );
+
+        {isButtonVisible && (
+          <CustomButton
+            barButtons={[
+              { iconName: 'home', onPress: handleHomePress },
+              { iconName: 'bookmark', onPress: handleBookmarkPress },
+              { iconName: 'address-book', onPress: handleAddressBookPress },
+              { iconName: 'search', onPress: handleSearchPress },
+            ]}
+          />
+        )}
+      </>
+    )}
+  </View>
+);
 };
+  export default HomePage;
 
-export default HomePage;
 
-
-const styles = StyleSheet.create({
-  logoImage: {
-    width: 300,
-    height: 100,
-    alignSelf:'center',
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginTop: 40,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-    paddingBottom: 10,
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    flex: 1,
-  },
-  tabButton: {
-    marginHorizontal: 20,
-    paddingBottom: 5,
-  },
-  tabText: {
-    fontSize: 18,
-    color: '#888',
-  },
-  activeTabButton: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#A1A0FE',
-  },
-  activeTabText: {
-    color: '#333',
-    fontWeight: 'bold',
-  },
-  settingsIcon: {
-    position: 'absolute',
-    right: 20,
-  },
-  filterContainer: {
-    marginVertical: 10,
-    alignItems: 'center',
-  },
-  filterScroll: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  categoryWrapper: {
-    flexDirection: 'row',
-  },
-  filterButton: {
-    backgroundColor: '#FFFF',
-    borderRadius: 20,
-    paddingVertical: 5,
-    paddingHorizontal: 15,
-    marginHorizontal: 5,
-    borderWidth: 2,
-    borderColor: '#E0E0E0',
-  },
-  filterButtonActive: {
-    backgroundColor: '#A1A0FE',
-    borderColor:'#FFFFFF'
-  },
-  filterText: {
-    color: '#000000',
-  },
-  filterTextActive: {
-    color: '#FFFFFF',
-  },
-  contentContainer: {
-    paddingHorizontal: 15,
-  },
-  articleCard: {
-    backgroundColor: '#8A7FDC',
-    borderRadius: 10,
-    marginBottom: 15,
-    padding: 10,
-    alignSelf: 'center',
-    width: 500,
-  },
-  articleTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333333',
-  },
-  articleAuthor: {
-    fontSize: 12,
-    color: '#333333',
-  },
-  articleDate: {
-    fontSize: 12,
-    color: '#333333',
-  },
-  articleDescription: {
-    fontSize: 14,
-    color: '#555555',
-    marginTop: 5,
-  },
-  tweetCard: {
-    backgroundColor: '#2A2B2E',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    overflow: 'hidden',
-    width: 500,
-    alignSelf: 'center',
-  },
-  tweetUsername: {
-    color: '#8A7FDC',
-    fontSize: 18,
-    marginBottom: 4,
-    fontWeight: 'bold',
-  },
-  tweetText: {
-    fontSize: 14,
-    color: '#A9A9A9',
-    lineHeight: 20,
-  },
-  tweetDate: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  tweetImage: {
-    height: 300,
-    width: 'auto',
-    resizeMode: 'contain',
-  },
-});
+  const styles = StyleSheet.create({
+    logoImage: {
+      width: 300,
+      height: 100,
+      alignSelf:'center',
+    },
+    container: {
+      flex: 1,
+      backgroundColor: '#FFFFFF',
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      marginTop: 40,
+      borderBottomWidth: 1,
+      borderBottomColor: '#E0E0E0',
+      paddingBottom: 10,
+    },
+    tabsContainer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      flex: 1,
+    },
+    tabButton: {
+      marginHorizontal: 20,
+      paddingBottom: 5,
+    },
+    tabText: {
+      fontSize: 18,
+      color: '#888',
+    },
+    activeTabButton: {
+      borderBottomWidth: 2,
+      borderBottomColor: '#A1A0FE',
+    },
+    activeTabText: {
+      color: '#333',
+      fontWeight: 'bold',
+    },
+    settingsIcon: {
+      position: 'absolute',
+      right: 20,
+    },
+    filterContainer: {
+      marginVertical: 10,
+      alignItems: 'center',
+    },
+    filterScroll: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    categoryWrapper: {
+      flexDirection: 'row',
+    },
+    filterButton: {
+      backgroundColor: '#FFFF',
+      borderRadius: 20,
+      paddingVertical: 5,
+      paddingHorizontal: 15,
+      marginHorizontal: 5,
+      borderWidth: 2,
+      borderColor: '#E0E0E0',
+    },
+    filterButtonActive: {
+      backgroundColor: '#A1A0FE',
+      borderColor:'#FFFFFF'
+    },
+    filterText: {
+      color: '#000000',
+    },
+    filterTextActive: {
+      color: '#FFFFFF',
+    },
+    contentContainer: {
+      paddingHorizontal: 15,
+    },
+    articleCard: {
+      backgroundColor: '#8A7FDC',
+      borderRadius: 10,
+      marginBottom: 15,
+      padding: 10,
+      alignSelf: 'center',
+      width: 500,
+    },
+    articleTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: '#333333',
+    },
+    articleAuthor: {
+      fontSize: 12,
+      color: '#333333',
+    },
+    articleDate: {
+      fontSize: 12,
+      color: '#333333',
+    },
+    articleDescription: {
+      fontSize: 14,
+      color: '#555555',
+      marginTop: 5,
+    },
+    tweetCard: {
+      backgroundColor: '#2A2B2E',
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 16,
+      shadowColor: '#000',
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 4 },
+      overflow: 'hidden',
+      width: 500,
+      alignSelf: 'center',
+    },
+    tweetUsername: {
+      color: '#8A7FDC',
+      fontSize: 18,
+      marginBottom: 4,
+      fontWeight: 'bold',
+    },
+    tweetText: {
+      fontSize: 14,
+      color: '#A9A9A9',
+      lineHeight: 20,
+    },
+    tweetDate: {
+      fontSize: 14,
+      color: '#FFFFFF',
+      marginBottom: 8,
+    },
+    tweetImage: {
+      height: 300,
+      width: 'auto',
+      resizeMode: 'contain',
+    },
+  });
