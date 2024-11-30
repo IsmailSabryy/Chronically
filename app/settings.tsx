@@ -37,15 +37,17 @@ const SettingsScreen: React.FC = () => {
   };
 
   const logout = () => {
-    router.push('/home');
+    router.push('/home'); // Redirect to the home screen
   };
 
   const handleDeactivation = (nickname: string) => {
+    // Handle deactivation logic here
     console.log(`Deactivating account for: ${nickname}`);
     router.push('/home');
   };
 
   const handleDeletion = (nickname: string) => {
+    // Handle deletion logic here
     console.log(`Deleting account for: ${nickname}`);
     router.push('/home');
   };
@@ -58,12 +60,13 @@ const SettingsScreen: React.FC = () => {
       if (userConfirmed) {
         handleDeactivation(username!);
       }
+      // No need to do anything if the user presses Cancel
     } else {
       Alert.alert(
         'Account Deactivation',
         'Are you sure you want to deactivate your account?',
         [
-          { text: 'Cancel', onPress: () => console.log('Deactivation canceled') },
+          { text: 'Cancel', onPress: () => console.log('Deactivation canceled') }, // Do nothing here
           { text: 'Deactivate', onPress: () => handleDeactivation(username!) },
         ],
         { cancelable: false }
@@ -79,13 +82,13 @@ const SettingsScreen: React.FC = () => {
       if (userConfirmed) {
         handleDeletion(username!);
       }
-
+      // No need to do anything if the user presses Cancel
     } else {
       Alert.alert(
         'Account Deletion',
         'Are you sure you want to permanently delete your account? This action cannot be undone.',
         [
-          { text: 'Cancel', onPress: () => console.log('Deletion canceled') },
+          { text: 'Cancel', onPress: () => console.log('Deletion canceled') }, // Do nothing here
           { text: 'Delete', onPress: () => handleDeletion(username!) },
         ],
         { cancelable: false }
@@ -95,13 +98,19 @@ const SettingsScreen: React.FC = () => {
 
   return (
     <View style={[styles.mainContainer, isDarkThemeEnabled && styles.darkTheme]}>
-      <View style={styles.sidebar}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Icon name="arrow-back" size={30} color="#fff" />
+        </TouchableOpacity>
         <Text style={styles.profileName}>{username || 'User'}</Text>
+      </View>
+
+      <View style={styles.sidebar}>
         <ScrollView>
-          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('./edit-profile')}>
+          {/* <TouchableOpacity style={styles.menuItem} onPress={() => router.push('./edit-profile')}>
             <Text style={styles.menuText}>Edit Profile</Text>
             <Icon name="chevron-forward" size={20} color="#fff" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           <TouchableOpacity style={styles.menuItem} onPress={() => router.push('./preferences')}>
             <Text style={styles.menuText}>Edit Preferences</Text>
             <Icon name="chevron-forward" size={20} color="#fff" />
@@ -124,14 +133,14 @@ const SettingsScreen: React.FC = () => {
               thumbColor={isDarkThemeEnabled ? '#f5dd4b' : '#f4f3f4'}
             />
           </View>
-          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('./language-settings')}>
+          {/* <TouchableOpacity style={styles.menuItem} onPress={() => router.push('./language-settings')}>
             <Text style={styles.menuText}>Language</Text>
             <Icon name="chevron-forward" size={20} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem} onPress={() => router.push('./faq-support')}>
             <Text style={styles.menuText}>FAQ's & Support</Text>
             <Icon name="chevron-forward" size={20} color="#fff" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
           <TouchableOpacity style={styles.menuItem} onPress={logout}>
             <Text style={styles.menuText}>Logout</Text>
@@ -163,18 +172,25 @@ const styles = StyleSheet.create({
   darkTheme: {
     backgroundColor: '#121212',
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+  },
+  backButton: {
+    marginRight: 20,
+  },
+  profileName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
   sidebar: {
     flex: 1,
     backgroundColor: '#6246EA',
     borderRadius: 20,
     padding: 20,
     margin: 15,
-  },
-  profileName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 20,
   },
   menuItem: {
     flexDirection: 'row',

@@ -7,11 +7,12 @@ import CustomButton from '../components/ui/ChronicallyButton';
 
 const FollowingPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Add Friends');
-  const [followedUsers, setFollowedUsers] = useState<any[]>([]);
+  var [followedUsers, setFollowedUsers] = useState<any[]>([]);
   const [searchUsername, setSearchUsername] = useState('');
   const [follower, setFollower] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isButtonPressed, setIsButtonPressed] = useState(false);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -26,24 +27,85 @@ const FollowingPage: React.FC = () => {
   };
 
   const handleUnfollow = async (followedUser: string) => {
-    // Unfollow logic here
-  };
+      try {
+        const response = await fetch('http://localhost:3000/remove_follow_Users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ follower_username: follower, followed_username: followedUser }),
+        });
 
-  const updateFollow = async (followedUser: string) => {
-    setIsButtonPressed(true);
-    try {
-      const response = await fetch('http://localhost:3000/follow_Users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ follower_username: follower, followed_username: followedUser }),
-      });
+        const result = await response.json();
+        
+        if (response.ok) {
+          setFollowedUsers((prevUsers) =>
+            prevUsers.filter((user) => user.username !== followedUser)
+          );
+          router.push('/followingPage');
+          Alert.alert('Success', `You have unfollowed ${followedUser}.`);
+        } else {
+          Alert.alert('Error', result.message || 'Failed to unfollow the user.');
+        }
+      } catch (error) {
+        console.error('Error unfollowing user:', error);
+        Alert.alert('Error', 'Something went wrong. Please try again later.');
+      }
+    };
+      
+    const handleFollow = async (followedUser: string) => {
+      try {
+        const response = await fetch('http://localhost:3000/follow_Users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ follower_username: follower, followed_username: followedUser }),
+        });
 
-      const errorCheck = await response.json();
-      setErrorMessage(errorCheck.message);
-    } catch (error) {
-      setErrorMessage('Failed to follow user.');
-    }
-  };
+        const result = await response.json();
+        
+        if (response.ok) {
+          setFollowedUsers((prevUsers) =>
+            prevUsers.filter((user) => user.username !== followedUser)
+          );
+          router.push('/followingPage');
+          Alert.alert('Success', `You have followed ${followedUser}.`);
+        } else {
+          Alert.alert('Error', result.message || 'Failed to follow the user.');
+        }
+      } catch (error) {
+        console.error('Error following user:', error);
+        Alert.alert('Error', 'Something went wrong. Please try again later.');
+      }
+    };
+
+
+
+
+    const searchUser = async (query: string) => {
+      if (query.length === 0) {
+        setSearchResults([]);
+        return;
+      }
+    
+      try {
+        const response = await fetch(`http://localhost:3000/get-similar_users_searched`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: query }),
+        });
+    
+        const data = await response.json();
+        console.log('Search API response:', data); // Debug log
+        if (data.status === 'Success' && Array.isArray(data.similar_users)) {
+          setSearchResults(data.similar_users);
+        } else {
+          setSearchResults([]);
+        }
+      } catch (error) {
+        console.error('Error searching users:', error);
+        setErrorMessage('Failed to search for users.');
+        setSearchResults([]);
+      }
+    };
+    
 
   const fetchUsername = async () => {
     try {
@@ -67,33 +129,37 @@ const FollowingPage: React.FC = () => {
       const followingResponse = await fetch('http://localhost:3000/get_followed_users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user }),
+        body: JSON.stringify({ follower_username: user }),
       });
 
       const followedUsers = await followingResponse.json();
-      setFollowedUsers(followedUsers);
+      setFollowedUsers(followedUsers.followedUsernames || []);  
+      console.log('FOLLOWEDUSERS:',followedUsers.followedUsernames);
     } catch (error) {
       console.error('Error fetching content:', error);
       setFollowedUsers([]);
     }
   };
 
-  const renderFollowedCard = ({ item }: any) => {
+  const renderFollowedCard = ({ item }: {item: string}) => {
     return (
       <View style={styles.followedCard}>
         <View style={styles.cardContent}>
           <Ionicons name="person" size={30} style={styles.userIcon} />
-          <Text style={styles.userName}>{item.username}</Text>
+          <Text style={styles.userName}>{item}</Text>
         </View>
         <TouchableOpacity
           style={styles.closeButton}
-          onPress={() => handleUnfollow(item.username)}
+          onPress={() => handleUnfollow(item)}
         >
           <Ionicons name="close" size={20} style={styles.closeIcon} />
         </TouchableOpacity>
       </View>
     );
   };
+
+
+
 
   const [isButtonVisible, setIsButtonVisible] = useState(true);
 
@@ -113,6 +179,8 @@ const FollowingPage: React.FC = () => {
   const handleAddressBookPress = () => {
     // Do nothing or implement functionality
   };
+
+
 
   const handleSearchPress = () => {
     console.log('Search button pressed!');
@@ -147,37 +215,60 @@ const FollowingPage: React.FC = () => {
       <View style={styles.searchBarContainer}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Enter username to follow"
+          placeholder="Search for a user"
           placeholderTextColor="#888"
           value={searchUsername}
-          onChangeText={setSearchUsername}
+          onChangeText={(text) => {
+            setSearchUsername(text);
+            searchUser(text); // Trigger search when text changes
+          }}
         />
-        <TouchableOpacity style={styles.followButton} onPress={() => updateFollow(searchUsername)}>
-          <Text style={styles.followButtonText}>Follow</Text>
+        <TouchableOpacity style={styles.followButton} onPress={() => searchUser(searchUsername)}>
+          <Text style={styles.followButtonText}>Search</Text>
         </TouchableOpacity>
       </View>
 
       {isButtonPressed && errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
+      {/* Display the search results in a dropdown */}
+      {searchUsername.length > 0 && (
+  <View style={styles.searchResultsContainer}>
+    {searchResults.length > 0 ? (
+      <FlatList
+        data={searchResults}
+        keyExtractor={(item) => item.username}
+        renderItem={({ item }) => (
+          <TouchableOpacity onPress={() => handleFollow(item)}>
+            <Text style={styles.searchResultText}>{item}</Text>
+          </TouchableOpacity>
+        )}
+      />
+    ) : (
+      <Text style={styles.searchResultText}>No results found</Text>
+    )}
+  </View>
+)}
+
       <FlatList
         data={followedUsers}
         renderItem={renderFollowedCard}
-        keyExtractor={(item, index) => `${item.username}-${index}`}
+        keyExtractor={(item) => item}
         contentContainerStyle={styles.contentContainer}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
+        ListEmptyComponent={
+          <Text style={{ textAlign: 'center', color: '#888', marginTop: 20 }}>
+            You are not currently following any users.
+          </Text>
+        }
       />
 
-      {isButtonVisible && (
-        <CustomButton
-          barButtons={[
-            { iconName: 'home', onPress: handleHomePress },
-            { iconName: 'bookmark', onPress: handleBookmarkPress },
-            { iconName: 'address-book', onPress: handleAddressBookPress },
-            { iconName: 'search', onPress: handleSearchPress },
-          ]}
-        />
-      )}
+      <CustomButton
+        barButtons={[
+          { iconName: 'home', onPress: handleHomePress },
+          { iconName: 'bookmark', onPress: handleBookmarkPress },
+          { iconName: 'address-book', onPress: handleAddressBookPress },
+          { iconName: 'search', onPress: handleSearchPress },
+        ]}
+      />
     </View>
   );
 };
@@ -302,5 +393,18 @@ const styles = StyleSheet.create({
     marginTop: 5,
     marginLeft: 20,
     fontSize: 14,
+  },
+  searchResultsContainer: {
+    maxHeight: 200,
+    borderWidth: 1,
+    borderColor: '#CCC',
+    borderRadius: 5,
+    marginTop: 5,
+    backgroundColor: '#fff',
+  },
+  searchResultText: {
+    padding: 10,
+    fontSize: 16,
+    color: '#000',
   },
 });
