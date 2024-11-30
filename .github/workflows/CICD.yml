@@ -4,13 +4,35 @@ on:
     branches:
       - main
 jobs:
-  sonarcloud:
-    name: SonarCloud
+  secret_scanning:
+    name: Secret Scanning
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0 
+      - name: Install detect-secrets
+        run: |
+          pip install detect-secrets
+      - name: Run Secret Scanning
+        run: |
+          detect-secrets scan > .secrets.baseline
+          echo "Secrets baseline created."
+          detect-secrets audit .secrets.baseline || echo "Potential secrets found! Review the .secrets.baseline file."
+        env:
+          DETECT_SECRETS_AUDIT_PROMPT: "false"
+      - name: Alert if secrets detected
+        run: |
+          detect-secrets-hook --baseline .secrets.baseline || echo "::warning file=.secrets.baseline::Potential secrets detected. Review the findings."
+
+  sonarcloud_scan:
+    name: SonarCloud Scan
+    runs-on: ubuntu-latest
+    needs: secret_scanning
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
