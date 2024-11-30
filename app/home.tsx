@@ -11,8 +11,7 @@ const HomeScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const handleReactivation = (Nickname) => {
-    // Send the reactivation request to the server
+  const handleReactivation = (Nickname: string) => {
     fetch('http://localhost:3000/reactivate-user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

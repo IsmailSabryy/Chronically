@@ -7,6 +7,7 @@ import {
   ScrollView,
   Alert,
   Linking,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -95,6 +96,45 @@ const ArticlePage: React.FC = () => {
     }
   };
 
+  const handleLike = () => {
+    Alert.alert('Liked', 'You liked this article!');
+  };
+
+  const handleComment = () => {
+    Alert.alert('Comment', 'Comment functionality coming soon!');
+  };
+
+  const handleShare = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/get-username');
+      const data = await response.json();
+      if (data.username) {
+        await fetch('http://localhost:3000/share_article', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: data.username,
+            article_id: articleData.id,
+          }),
+        });
+        if (Platform.OS === 'web') {
+          alert('Article shared successfully!');
+        } else {
+          Alert.alert('Success', 'Article shared successfully!');
+        }
+      } else {
+        if (Platform.OS === 'web') {
+          alert('Unable to share article');
+        } else {
+          Alert.alert('Error', 'Unable to share article');
+        }
+      }
+    } catch (error) {
+      console.error('Error sharing article', error);
+      Alert.alert('Error', 'Unable to share article');
+    }
+  };
+
   const handleLinkPress = (link: string) => {
     Linking.openURL(link).catch(() =>
       Alert.alert('Error', 'Failed to open article link.')
@@ -149,6 +189,18 @@ const ArticlePage: React.FC = () => {
           >
             <Text style={styles.readMoreText}>Read Full Article</Text>
           </TouchableOpacity>
+
+          <View style={styles.actionIcons}>
+            <TouchableOpacity onPress={handleLike}>
+              <Icon name="heart-outline" size={30} color="#A1A0FE" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleComment}>
+              <Icon name="chatbubble-outline" size={30} color="#A1A0FE" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleShare}>
+              <Icon name="share-outline" size={30} color="#A1A0FE" />
+            </TouchableOpacity>
+          </View>
         </View>
       ) : (
         <Text style={styles.loadingText}>Loading article details...</Text>
@@ -222,32 +274,27 @@ const styles = StyleSheet.create({
   },
   readMoreButton: {
     backgroundColor: '#A1A0FE',
-    paddingVertical: 10,
     borderRadius: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
     alignItems: 'center',
+    marginBottom: 20,
   },
   readMoreText: {
-    fontSize: 16,
     color: '#FFFFFF',
     fontWeight: 'bold',
   },
-  loadingText: {
-    fontSize: 16,
-    color: '#777',
-    textAlign: 'center',
-    marginTop: 50,
+  actionIcons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
   },
   relatedHeader: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginTop: 30,
-    marginBottom: 10,
-  },
-  relatedContainer: {
-    flexDirection: 'row',
+    marginVertical: 20,
   },
   relatedCard: {
-    backgroundColor: '#EAE6FA',
+    backgroundColor: '#FFFFFF',
     borderRadius: 10,
     padding: 10,
     marginBottom: 15,
@@ -256,7 +303,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 3,
-    width: '100%',
   },
   relatedHeadline: {
     fontSize: 16,
@@ -266,6 +312,12 @@ const styles = StyleSheet.create({
   relatedCategory: {
     fontSize: 14,
     color: '#777',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#777',
+    textAlign: 'center',
+    marginTop: 20,
   },
 });
 

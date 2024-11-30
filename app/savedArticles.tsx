@@ -5,11 +5,8 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import CustomButton from '../components/ui/ChronicallyButton';
 
 const HomePage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('My News');
-  const [preferences, setPreferences] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [articlesAndTweets, setArticlesAndTweets] = useState<any[]>([]);
-  const [isSeeAll, setIsSeeAll] = useState(false);
+  const [username, setUsername] = useState('');
   const router = useRouter();
   const formatToUTCT = (isoDate: string) => {
     const date = new Date(isoDate);
@@ -35,99 +32,31 @@ const HomePage: React.FC = () => {
       const response = await fetch('http://localhost:3000/get-username');
       const data = await response.json();
       if (data.username) {
-        fetchPreferences(data.username);
+        setUsername(data.username)
+        fetchContent();
       } else {
-        setPreferences([]);
+        setUsername('');
       }
     } catch (error) {
       console.error('Error fetching username:', error);
-      setPreferences([]);
+      setUsername('');
     }
   };
 
-  const fetchPreferences = async (username: string) => {
+  const fetchContent = async () => {
     try {
-      const response = await fetch('http://localhost:3000/check-preferences', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username }),
-      });
-      const data = await response.json();
-      if (data.status === 'Success') {
-        const fetchedPreferences = data.data.map((item: any) => item.preference);
-        setPreferences(fetchedPreferences);
-        setSelectedCategory(fetchedPreferences[0]);
-        fetchContent(fetchedPreferences[0]);
-      } else {
-        setPreferences([]);
-      }
-    } catch (error) {
-      console.error('Error fetching preferences:', error);
-      setPreferences([]);
-    }
-  };
-
-  const fetchContent = async (category: string) => {
-    try {
-      const [articlesResponse, tweetsResponse] = await Promise.all([
-        fetch(
-          isSeeAll
-            ? 'http://localhost:3000/get-allarticles'
-            : 'http://localhost:3000/get-articles',
+      const response = await fetch('http://localhost:3000/show-saved',
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ category }),
+            body: JSON.stringify({ username }),
           }
-        ),
-        fetch(
-          isSeeAll
-            ? 'http://localhost:3000/get-alltweets'
-            : 'http://localhost:3000/get-tweets',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ category }),
-          }
-        ),
-      ]);
+        );
 
-      const articlesData = await articlesResponse.json();
-      const tweetsData = await tweetsResponse.json();
-
-      if (articlesData.status === 'Articles found' || tweetsData.status === 'Tweets found') {
-        const combinedContent = [
-          ...(articlesData.data || []).map((item: any) => ({ type: 'article', ...item })),
-          ...(tweetsData.data || []).map((item: any) => ({ type: 'tweet', ...item })),
-        ];
-
-        setArticlesAndTweets(combinedContent);
-      } else {
-        setArticlesAndTweets([]);
-      }
+        setArticlesAndTweets(await response.json());
     } catch (error) {
       console.error('Error fetching content:', error);
       setArticlesAndTweets([]);
-    }
-  };
-
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
-    if (tab === 'Trending') {
-      router.push('/trending');
-    }
-  };
-
-  const handleCategorySelect = (category: string) => {
-    setIsSeeAll(false);
-    setSelectedCategory(category);
-    fetchContent(category);
-  };
-
-  const handleSeeAll = () => {
-    setIsSeeAll(true);
-    if (selectedCategory) {
-      fetchContent(selectedCategory);
     }
   };
 
@@ -207,11 +136,11 @@ const HomePage: React.FC = () => {
   };
 
   const handleHomePress = () => {
-    console.log(router.push('/trending'));
+    router.push('/home');
   };
 
   const handleBookmarkPress = () => {
-    router.push('/savedArticles');
+    console.log('Bookmark button pressed!');
   };
 
   const handleAddressBookPress = () => {
@@ -225,65 +154,9 @@ const HomePage: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.tabsContainer}>
-          <TouchableOpacity
-            style={[styles.tabButton, activeTab === 'My News' && styles.activeTabButton]}
-            onPress={() => handleTabChange('My News')}
-          >
-            <Text style={[styles.tabText, activeTab === 'My News' && styles.activeTabText]}>
-              My News
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tabButton, activeTab === 'Trending' && styles.activeTabButton]}
-            onPress={() => handleTabChange('Trending')}
-          >
-            <Text style={[styles.tabText, activeTab === 'Trending' && styles.activeTabText]}>
-              Trending
-            </Text>
-          </TouchableOpacity>
-        </View>
         <TouchableOpacity onPress={() => router.push('/settings')} style={styles.settingsIcon}>
           <Icon name="settings-outline" size={24} color="#888" />
         </TouchableOpacity>
-      </View>
-
-      <View style={styles.filterContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterScroll}
-        >
-          <View style={styles.categoryWrapper}>
-            {preferences.map((category, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.filterButton,
-                  selectedCategory === category && styles.filterButtonActive,
-                ]}
-                onPress={() => handleCategorySelect(category)}
-              >
-                <Text
-                  style={[
-                    styles.filterText,
-                    selectedCategory === category && styles.filterTextActive,
-                  ]}
-                >
-                  {category}
-                </Text>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity
-              style={[styles.filterButton, isSeeAll && styles.filterButtonActive]}
-              onPress={handleSeeAll}
-            >
-              <Text style={[styles.filterText, isSeeAll && styles.filterTextActive]}>
-                See All →
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
       </View>
 
       <FlatList

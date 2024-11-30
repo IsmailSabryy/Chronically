@@ -112,7 +112,7 @@ const TrendingScreen: React.FC = () => {
   };
 
   const handleAddressBookPress = () => {
-    console.log('Address Book button pressed!');
+    router.push('/followingPage');
   };
 
   const handleSearchPress = () => {

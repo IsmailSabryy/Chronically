@@ -8,17 +8,35 @@ import {
   Alert,
   ScrollView,
   Linking,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 const TweetPage: React.FC = () => {
   const [tweetData, setTweetData] = useState<any>(null);
+  const [username, setUsername] = useState('');
   const router = useRouter();
 
   useEffect(() => {
     fetchTweetLink();
+    fetchUsername();
   }, []);
+
+  const fetchUsername = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/get-username');
+      const data = await response.json();
+      if (data.username) {
+        setUsername(data.username);
+      } else {
+        setUsername('');
+      }
+    } catch (error) {
+      console.error('Error fetching username:', error);
+      setUsername('Guest');
+    }
+  };
 
   const fetchTweetLink = async () => {
     try {
@@ -54,10 +72,66 @@ const TweetPage: React.FC = () => {
     }
   };
 
+  const handleShare = async (tweetLink:string) => {
+    if(username != ''){
+      try {
+        const response = await fetch('http://localhost:3000/get-username');
+        const data = await response.json();
+        if (data.username) {
+          await fetch('http://localhost:3000/share_tweets', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              username: data.username,
+              tweet_link: tweetLink,
+            }),
+          });
+          if(Platform.OS=='web'){
+            alert('Tweet shared successfully!');
+          }else{
+            Alert.alert('Success','Tweet shared successfully!');
+          }
+        } else {
+          if(Platform.OS=='web'){
+            alert('Unable to share tweet');
+          }else{
+            Alert.alert('Error','Unable to share tweet');
+          }
+        }
+      } catch (error) {
+        console.error('Error sharing article', error);
+        Alert.alert('Error', 'Unable to share tweet');
+      }
+    }
+  };
+  
+
   const handleMediaPress = (tweetLink: string) => {
     Linking.openURL(tweetLink).catch((err) =>
       Alert.alert('Error', 'Failed to open tweet.')
     );
+  };
+
+  const handleSave = async (tweetLink: string) => {
+    const response = await fetch('localhost:3000/save-tweets',{
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: username, tweet_link: tweetLink }),
+    });
+
+    if(response.ok){
+      if(Platform.OS=='web'){
+        alert('Tweet saved successfully!');
+      }else{
+        Alert.alert('Success','Tweet saved successfully!');
+      }
+    }else{
+      if(Platform.OS=='web'){
+        alert('Error: Tweet could not be saved');
+      }else{
+        Alert.alert('Error','Tweet could not be saved');
+      }
+    }
   };
 
   return (
@@ -106,13 +180,15 @@ const TweetPage: React.FC = () => {
           <Text style={styles.aiExplanationText}>{tweetData.Explanation}</Text>
 
           <View style={styles.actionIcons}>
-            <TouchableOpacity>
-              <Icon name="heart-outline" size={30} color="#A1A0FE" />
+            <TouchableOpacity onPress={() => handleSave(tweetData.Tweet_Link)}>
+              <Icon name="bookmark-outline" size={30} color="#A1A0FE" />
             </TouchableOpacity>
             <TouchableOpacity>
               <Icon name="chatbubble-outline" size={30} color="#A1A0FE" />
             </TouchableOpacity>
-            <TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => handleShare(tweetData.Tweet_Link)}            
+            >
               <Icon name="share-outline" size={30} color="#A1A0FE" />
             </TouchableOpacity>
           </View>
@@ -213,4 +289,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default TweetPage;
+export default TweetPage;
