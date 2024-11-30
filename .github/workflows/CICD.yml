@@ -21,10 +21,11 @@ jobs:
           detect-secrets audit .secrets.baseline || echo "Potential secrets found! Review the .secrets.baseline file."
         env:
           DETECT_SECRETS_AUDIT_PROMPT: "false"
-      - name: Alert if secrets detected
+      - name: List all secrets found
         run: |
-          detect-secrets-hook --baseline .secrets.baseline || echo "::warning file=.secrets.baseline::Potential secrets detected. Review the findings."
-
+          echo "Listing all secrets found:"
+          cat .secrets.baseline
+          
   sonarcloud_scan:
     name: SonarCloud Scan
     runs-on: ubuntu-latest
