@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert, Image, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import Icon from 'react-native-vector-icons/Ionicons';
 import CustomButton from '../components/ui/ChronicallyButton';
 
 const domaindynamo = Platform.OS === 'web'
   ?  'http://localhost:3000' // Use your local IP address for web
-  : 'http://192.168.100.103:3000';       // Use localhost for mobile emulator or device
+  : 'http://192.168.100.187:3000';       // Use localhost for mobile emulator or device
 
 const TrendingScreen: React.FC = () => {
   const [content, setContent] = useState<any[]>([]);
@@ -101,12 +100,11 @@ const TrendingScreen: React.FC = () => {
   };
 
   const handleBookmarkPress = () => {
-    console.log('Bookmark button pressed!');
+    router.push('/savedArticles');
   };
 
   const handleAddressBookPress = () => {
       router.push('/followingPage');
-    console.log('Address Book button pressed!');
   };
 
   const handleSearchPress = () => {
@@ -183,13 +181,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#2A2B2E',
     borderRadius: 16,
     padding: 16,
-    marginBottom: 16,
+    marginBottom: 5,
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     overflow: 'hidden',
-    width: 500,
+    width: '98%',
     alignSelf: 'center',
   },
   tweetUsername: {
@@ -209,7 +207,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   tweetImage: {
-    height: 300,
+    height: 200,
     width: 'auto',
     resizeMode: 'contain',
   },

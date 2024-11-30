@@ -28,7 +28,7 @@ const HomePage: React.FC = () => {
 
 const domaindynamo = Platform.OS === 'web'
   ?  'http://localhost:3000' // Use your local IP address for web
-  : 'http://192.168.100.103:3000';       // Use localhost for mobile emulator or device
+  : 'http://192.168.100.187:3000';       // Use localhost for mobile emulator or device
 
 
   const formatToUTCA = (isoDate: string) => {
@@ -211,16 +211,15 @@ const domaindynamo = Platform.OS === 'web'
   };
 
   const handleHomePress = () => {
-    console.log(router.push('/trending'));
+    console.log(router.push('/mynews'));
   };
 
   const handleBookmarkPress = () => {
-    console.log('Bookmark button pressed!');
+    router.push('/savedArticles');
   };
 
   const handleAddressBookPress = () => {
       router.push('/followingPage');
-    console.log('Address Book button pressed!');
   };
 
   const handleSearchPress = () => {
@@ -347,6 +346,7 @@ const domaindynamo = Platform.OS === 'web'
       flexDirection: 'row',
       justifyContent: 'center',
       flex: 1,
+      top: 10,
     },
     tabButton: {
       marginHorizontal: 20,
@@ -405,10 +405,10 @@ const domaindynamo = Platform.OS === 'web'
     articleCard: {
       backgroundColor: '#8A7FDC',
       borderRadius: 10,
-      marginBottom: 15,
+      marginBottom: 5,
       padding: 10,
       alignSelf: 'center',
-      width: 500,
+      width: '98%',
     },
     articleTitle: {
       fontSize: 16,
@@ -432,13 +432,13 @@ const domaindynamo = Platform.OS === 'web'
       backgroundColor: '#2A2B2E',
       borderRadius: 16,
       padding: 16,
-      marginBottom: 16,
+      marginBottom: 5,
       shadowColor: '#000',
       shadowOpacity: 0.1,
       shadowRadius: 8,
       shadowOffset: { width: 0, height: 4 },
       overflow: 'hidden',
-      width: 500,
+      width: '98%',
       alignSelf: 'center',
     },
     tweetUsername: {
@@ -458,7 +458,7 @@ const domaindynamo = Platform.OS === 'web'
       marginBottom: 8,
     },
     tweetImage: {
-      height: 300,
+      height: 200,
       width: 'auto',
       resizeMode: 'contain',
     },

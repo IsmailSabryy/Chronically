@@ -12,7 +12,7 @@ import {
 
 const domaindynamo = Platform.OS === 'web'
   ? 'http://localhost:3000' // Use your local IP address for web
-  : 'http://192.168.100.103:3000'; // Use localhost for mobile emulator or device
+  : 'http://192.168.100.187:3000'; // Use localhost for mobile emulator or device
 
 const RepostFeedPage = () => {
   const [sharedContent, setSharedContent] = useState([]);
@@ -196,10 +196,10 @@ const styles = StyleSheet.create({
   card: {
         backgroundColor: '#8A7FDC',
         borderRadius: 10,
-        marginBottom: 15,
+        marginBottom: 5,
         padding: 10,
         alignSelf: 'center',
-        width: 500,
+        width: '95%',
   },
   headline: {
     fontSize: 18,

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet , Platform, Alert} from 'react-native';
 import { useRouter } from 'expo-router';
-import * as Random from 'expo-random';
 import * as Crypto from 'expo-crypto';
 import { makeRedirectUri, useAuthRequest } from 'expo-auth-session';
+import * as Network from 'expo-network';
 
 const domain = 'dev-1uzu6bsvrd2mj3og.us.auth0.com';
 const clientId = 'CZHJxAwp7QDLyavDaTLRzoy9yLKea4A1';
@@ -50,11 +50,7 @@ export const createVerifierChallenge = () => {
 
 const domaindynamo = Platform.OS === 'web'
   ?  'http://localhost:3000' // Use your local IP address for web
-  : 'http://192.168.100.103:3000';       // Use localhost for mobile emulator or device
-
-  console.log('API Domain:', domaindynamo);
-
-
+  : 'http://192.168.100.187:3000';       // Use localhost for mobile emulator or device
 console.log("URI: " ,  redirectUri);
 
 const HomeScreen: React.FC = () => {

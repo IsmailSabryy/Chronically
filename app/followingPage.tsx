@@ -18,7 +18,7 @@ const FollowingPage: React.FC = () => {
 
   const domaindynamo = Platform.OS === 'web'
     ?  'http://localhost:3000' // Use your local IP address for web
-    : 'http://192.168.100.103:3000';       // Use localhost for mobile emulator or device
+    : 'http://192.168.100.187:3000';       // Use localhost for mobile emulator or device
 
   useEffect(() => {
     fetchUsername();
@@ -168,24 +168,17 @@ const FollowingPage: React.FC = () => {
 
   const [isButtonVisible, setIsButtonVisible] = useState(true);
 
-  const handleScroll = (event: any) => {
-    const offsetY = event.nativeEvent.contentOffset.y;
-    setIsButtonVisible(offsetY < 100);
-  };
-
   const handleHomePress = () => {
     console.log(router.push('/mynews'));
   };
 
   const handleBookmarkPress = () => {
-    console.log('Bookmark button pressed!');
+    router.push('/savedArticles');
   };
 
   const handleAddressBookPress = () => {
-    // Do nothing or implement functionality
+      router.push('/followingPage');
   };
-
-
 
   const handleSearchPress = () => {
     console.log('Search button pressed!');

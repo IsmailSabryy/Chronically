@@ -15,7 +15,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 
 const domaindynamo = Platform.OS === 'web'
   ?  'http://localhost:3000' // Use your local IP address for web
-  : 'http://192.168.100.103:3000';       // Use localhost for mobile emulator or device
+  : 'http://192.168.100.187:3000';       // Use localhost for mobile emulator or device
 
 
 const ArticlePage: React.FC = () => {
