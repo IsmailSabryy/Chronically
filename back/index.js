@@ -736,7 +736,8 @@ app.post('/search_content', (req, res) => {
         SELECT 'tweet' AS type, Tweet_Link AS id, Created_At AS time
         FROM Tweets
         WHERE Tweet LIKE ?
-        ORDER BY time DESC;
+        ORDER BY time DESC
+        LIMIT 50;
     `;
 
     pool.query(searchQuerySQL, [searchQueryFormatted, searchQueryFormatted], (err, results) => {

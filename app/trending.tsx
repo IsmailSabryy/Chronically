@@ -108,7 +108,7 @@ const TrendingScreen: React.FC = () => {
   };
 
   const handleBookmarkPress = () => {
-    console.log('Bookmark button pressed!');
+    router.push('/savedArticles');
   };
 
   const handleAddressBookPress = () => {
@@ -116,7 +116,7 @@ const TrendingScreen: React.FC = () => {
   };
 
   const handleSearchPress = () => {
-    console.log('Search button pressed!');
+    router.push('/searchPage');
   };
 
   return (

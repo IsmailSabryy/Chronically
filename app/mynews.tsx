@@ -219,7 +219,7 @@ const HomePage: React.FC = () => {
   };
 
   const handleSearchPress = () => {
-    console.log('Search button pressed!');
+    router.push('./searchPage');
   };
 
   return (
