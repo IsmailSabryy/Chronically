@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, FlatList, Alert, Image, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, FlatList, Alert, Image, TextInput , Platform} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
 import CustomButton from '../components/ui/ChronicallyButton';
+import RepostFeedPage from '../app/repostFeed';
 
 const FollowingPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Add Friends');
@@ -14,6 +15,10 @@ const FollowingPage: React.FC = () => {
   const [isButtonPressed, setIsButtonPressed] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const router = useRouter();
+
+  const domaindynamo = Platform.OS === 'web'
+    ?  'http://localhost:3000' // Use your local IP address for web
+    : 'http://192.168.100.187:3000';       // Use localhost for mobile emulator or device
 
   useEffect(() => {
     fetchUsername();
@@ -28,14 +33,14 @@ const FollowingPage: React.FC = () => {
 
   const handleUnfollow = async (followedUser: string) => {
       try {
-        const response = await fetch('http://localhost:3000/remove_follow_Users', {
+        const response = await fetch(`${domaindynamo}/remove_follow_Users`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ follower_username: follower, followed_username: followedUser }),
         });
 
         const result = await response.json();
-        
+
         if (response.ok) {
           setFollowedUsers((prevUsers) =>
             prevUsers.filter((user) => user.username !== followedUser)
@@ -50,17 +55,17 @@ const FollowingPage: React.FC = () => {
         Alert.alert('Error', 'Something went wrong. Please try again later.');
       }
     };
-      
+
     const handleFollow = async (followedUser: string) => {
       try {
-        const response = await fetch('http://localhost:3000/follow_Users', {
+        const response = await fetch(`${domaindynamo}/follow_Users`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ follower_username: follower, followed_username: followedUser }),
         });
 
         const result = await response.json();
-        
+
         if (response.ok) {
           setFollowedUsers((prevUsers) =>
             prevUsers.filter((user) => user.username !== followedUser)
@@ -84,14 +89,14 @@ const FollowingPage: React.FC = () => {
         setSearchResults([]);
         return;
       }
-    
+
       try {
-        const response = await fetch(`http://localhost:3000/get-similar_users_searched`, {
+        const response = await fetch(`${domaindynamo}/get-similar_users_searched`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: query }),
         });
-    
+
         const data = await response.json();
         console.log('Search API response:', data); // Debug log
         if (data.status === 'Success' && Array.isArray(data.similar_users)) {
@@ -105,11 +110,11 @@ const FollowingPage: React.FC = () => {
         setSearchResults([]);
       }
     };
-    
+
 
   const fetchUsername = async () => {
     try {
-      const response = await fetch('http://localhost:3000/get-username');
+      const response = await fetch(`${domaindynamo}/get-username`);
       const data = await response.json();
       if (data.username) {
         setFollower(data.username);
@@ -126,14 +131,14 @@ const FollowingPage: React.FC = () => {
 
   const fetchContent = async (user: string) => {
     try {
-      const followingResponse = await fetch('http://localhost:3000/get_followed_users', {
+      const followingResponse = await fetch(`${domaindynamo}/get_followed_users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ follower_username: user }),
       });
 
       const followedUsers = await followingResponse.json();
-      setFollowedUsers(followedUsers.followedUsernames || []);  
+      setFollowedUsers(followedUsers.followedUsernames || []);
       console.log('FOLLOWEDUSERS:',followedUsers.followedUsernames);
     } catch (error) {
       console.error('Error fetching content:', error);
@@ -163,115 +168,114 @@ const FollowingPage: React.FC = () => {
 
   const [isButtonVisible, setIsButtonVisible] = useState(true);
 
-  const handleScroll = (event: any) => {
-    const offsetY = event.nativeEvent.contentOffset.y;
-    setIsButtonVisible(offsetY < 100);
-  };
-
   const handleHomePress = () => {
     console.log(router.push('/mynews'));
   };
 
   const handleBookmarkPress = () => {
-    console.log('Bookmark button pressed!');
+    router.push('/savedArticles');
   };
 
   const handleAddressBookPress = () => {
-    // Do nothing or implement functionality
+      router.push('/followingPage');
   };
-
-
 
   const handleSearchPress = () => {
     console.log('Search button pressed!');
   };
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.tabsContainer}>
-          <TouchableOpacity
-            style={[styles.tabButton, activeTab === 'Add Friends' && styles.activeTabButton]}
-            onPress={() => handleTabChange('Add Friends')}
-          >
-            <Text style={[styles.tabText, activeTab === 'Add Friends' && styles.activeTabText]}>
-              Add Friends
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tabButton, activeTab === 'Reposts' && styles.activeTabButton]}
-            onPress={() => handleTabChange('Reposts')}
-          >
-            <Text style={[styles.tabText, activeTab === 'Reposts' && styles.activeTabText]}>
-              Reposts
-            </Text>
+return (
+  <View style={styles.container}>
+    <View style={styles.header}>
+      <View style={styles.tabsContainer}>
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === 'Add Friends' && styles.activeTabButton]}
+          onPress={() => setActiveTab('Add Friends')}
+        >
+          <Text style={[styles.tabText, activeTab === 'Add Friends' && styles.activeTabText]}>
+            Add Friends
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === 'Reposts' && styles.activeTabButton]}
+          onPress={() => setActiveTab('Reposts')}
+        >
+          <Text style={[styles.tabText, activeTab === 'Reposts' && styles.activeTabText]}>
+            Reposts
+          </Text>
+        </TouchableOpacity>
+      </View>
+      <TouchableOpacity onPress={() => router.push('/settings')} style={styles.settingsIcon}>
+        <Icon name="settings-outline" size={24} color="#888" />
+      </TouchableOpacity>
+    </View>
+
+    {activeTab === 'Reposts' ? (
+      <RepostFeedPage />
+    ) : (
+      <>
+        <View style={styles.searchBarContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search for a user"
+            placeholderTextColor="#888"
+            value={searchUsername}
+            onChangeText={(text) => {
+              setSearchUsername(text);
+              searchUser(text); // Trigger search when text changes
+            }}
+          />
+          <TouchableOpacity style={styles.followButton} onPress={() => searchUser(searchUsername)}>
+            <Text style={styles.followButtonText}>Search</Text>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity onPress={() => router.push('/settings')} style={styles.settingsIcon}>
-          <Icon name="settings-outline" size={24} color="#888" />
-        </TouchableOpacity>
-      </View>
 
-      <View style={styles.searchBarContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search for a user"
-          placeholderTextColor="#888"
-          value={searchUsername}
-          onChangeText={(text) => {
-            setSearchUsername(text);
-            searchUser(text); // Trigger search when text changes
-          }}
-        />
-        <TouchableOpacity style={styles.followButton} onPress={() => searchUser(searchUsername)}>
-          <Text style={styles.followButtonText}>Search</Text>
-        </TouchableOpacity>
-      </View>
+        {isButtonPressed && errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
-      {isButtonPressed && errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
-
-      {/* Display the search results in a dropdown */}
-      {searchUsername.length > 0 && (
-  <View style={styles.searchResultsContainer}>
-    {searchResults.length > 0 ? (
-      <FlatList
-        data={searchResults}
-        keyExtractor={(item) => item.username}
-        renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => handleFollow(item)}>
-            <Text style={styles.searchResultText}>{item}</Text>
-          </TouchableOpacity>
+        {searchUsername.length > 0 && (
+          <View style={styles.searchResultsContainer}>
+            {searchResults.length > 0 ? (
+              <FlatList
+                data={searchResults}
+                keyExtractor={(item) => item.username}
+                renderItem={({ item }) => (
+                  <TouchableOpacity onPress={() => handleFollow(item)}>
+                    <Text style={styles.searchResultText}>{item}</Text>
+                  </TouchableOpacity>
+                )}
+              />
+            ) : (
+              <Text style={styles.searchResultText}>No results found</Text>
+            )}
+          </View>
         )}
-      />
-    ) : (
-      <Text style={styles.searchResultText}>No results found</Text>
+
+        <FlatList
+          data={followedUsers}
+          renderItem={renderFollowedCard}
+          keyExtractor={(item) => item}
+          contentContainerStyle={styles.contentContainer}
+          ListEmptyComponent={
+            <Text style={{ textAlign: 'center', color: '#888', marginTop: 20 }}>
+              You are not currently following any users.
+            </Text>
+          }
+        />
+      </>
     )}
+
+    <CustomButton
+      barButtons={[
+        { iconName: 'home', onPress: handleHomePress },
+        { iconName: 'bookmark', onPress: handleBookmarkPress },
+        { iconName: 'address-book', onPress: handleAddressBookPress },
+        { iconName: 'search', onPress: handleSearchPress },
+      ]}
+    />
   </View>
-)}
-
-      <FlatList
-        data={followedUsers}
-        renderItem={renderFollowedCard}
-        keyExtractor={(item) => item}
-        contentContainerStyle={styles.contentContainer}
-        ListEmptyComponent={
-          <Text style={{ textAlign: 'center', color: '#888', marginTop: 20 }}>
-            You are not currently following any users.
-          </Text>
-        }
-      />
-
-      <CustomButton
-        barButtons={[
-          { iconName: 'home', onPress: handleHomePress },
-          { iconName: 'bookmark', onPress: handleBookmarkPress },
-          { iconName: 'address-book', onPress: handleAddressBookPress },
-          { iconName: 'search', onPress: handleSearchPress },
-        ]}
-      />
-    </View>
-  );
+);
 };
+
 
 export default FollowingPage;
 

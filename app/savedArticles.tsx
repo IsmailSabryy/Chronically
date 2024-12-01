@@ -1,327 +1,302 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, FlatList, Alert, Image } from 'react-native';
-import { useRouter } from 'expo-router';
-import Icon from 'react-native-vector-icons/Ionicons';
-import CustomButton from '../components/ui/ChronicallyButton';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Linking,
+  ActivityIndicator,
+  FlatList,
+  Platform,
+} from 'react-native';
 
-const HomePage: React.FC = () => {
-  const [articlesAndTweets, setArticlesAndTweets] = useState<any[]>([]);
+const domaindynamo = Platform.OS === 'web'
+  ? 'http://localhost:3000' // Use your local IP address for web
+  : 'http://192.168.100.187:3000'; // Use localhost for mobile emulator or device
+
+const RepostFeedPage = () => {
+  const [sharedContent, setSharedContent] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState('');
-  const router = useRouter();
-  const formatToUTCT = (isoDate: string) => {
-    const date = new Date(isoDate);
-    const hours = String(date.getUTCHours()).padStart(2, '0');
-    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-    const day = String(date.getUTCDate()).padStart(2, '0');
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const year = date.getUTCFullYear();
-
-    return `${hours}:${minutes} ${day}-${month}-${year}`;
-  };
-  const formatToUTCA = (isoDate: string) => { 
-    const date = new Date(isoDate);
-    const day = String(date.getUTCDate()).padStart(2, '0');
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const year = date.getUTCFullYear();
-  
-    return `${day}-${month}-${year}`;
-  };
-  
-  const fetchUsername = async () => {
-    try {
-      const response = await fetch('http://localhost:3000/get-username');
-      const data = await response.json();
-      if (data.username) {
-        setUsername(data.username)
-        fetchContent();
-      } else {
-        setUsername('');
-      }
-    } catch (error) {
-      console.error('Error fetching username:', error);
-      setUsername('');
-    }
-  };
-
-  const fetchContent = async () => {
-    try {
-      const response = await fetch('http://localhost:3000/show-saved',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username }),
-          }
-        );
-
-        setArticlesAndTweets(await response.json());
-    } catch (error) {
-      console.error('Error fetching content:', error);
-      setArticlesAndTweets([]);
-    }
-  };
-
-  const handleContentPress = async (item: any) => {
-    if (item.type === 'tweet') {
-      try {
-        const response = await fetch('http://localhost:3000/set-tweet-link', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ link: item.Tweet_Link }),
-        });
-
-        const data = await response.json();
-        if (data.status === 'Success') {
-          router.push('/tweetpage');
-        } else {
-          Alert.alert('Error', 'Failed to set tweet link');
-        }
-      } catch (error) {
-        console.error('Error setting tweet link:', error);
-        Alert.alert('Error', 'Unable to set tweet link');
-      }
-    } else if (item.type === 'article') {
-      try {
-        const response = await fetch('http://localhost:3000/set-article-id', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: item.id }),
-        });
-
-        const data = await response.json();
-        if (data.status === 'Success') {
-          router.push('/articlepage');
-        } else {
-          Alert.alert('Error', 'Failed to set article ID');
-        }
-      } catch (error) {
-        console.error('Error setting article ID:', error);
-        Alert.alert('Error', 'Unable to set article ID');
-      }
-    }
-  };
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchUsername();
+    const fetchInitialData = async () => {
+      try {
+        const usernameResponse = await fetch(`${domaindynamo}/get-username`);
+        const usernameData = await usernameResponse.json();
+        const currentUsername = usernameData.username || 'Guest';
+        setUsername(currentUsername);
+        await fetchSharedContent(currentUsername);
+      } catch (err) {
+        console.error('Error fetching username:', err);
+        setUsername('Guest');
+        await fetchSharedContent('Guest');
+      }
+    };
+
+    fetchInitialData();
   }, []);
 
-  const renderContentCard = ({ item }: { item: any }) => {
-    if (item.type === 'article') {
-      return (
-        <TouchableOpacity style={styles.articleCard} onPress={() => handleContentPress(item)}>
-          <Image source={require('../assets/images/logo.png')} style={styles.logoImage} />
-          <Text style={styles.articleTitle}>{item.headline}</Text>
-          <Text style={styles.articleAuthor}>{item.authors}</Text>
-          <Text style={styles.articleDate}>{ formatToUTCA(item.date)}</Text>
-        </TouchableOpacity>
+  const fetchSharedContent = async (followerUsername:string) => {
+    try {
+      const response = await fetch(`${domaindynamo}/show-saved`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ follower_username: followerUsername }),
+      });
+
+      if (!response.ok) throw new Error(`Error:failed to fetch ${response.statusText}`);
+
+      const data = await response.json();
+      if (!data.shared_content) throw new Error('Shared content not found');
+
+      const detailedContent = await Promise.all(
+        data.shared_content.map(async (item) => {
+          if (item.content_type === 'article') {
+            return { ...item, content_data: await fetchArticleContent(item.content_id) };
+          } else if (item.content_type === 'tweet') {
+            return { ...item, content_data: await fetchTweetContent(item.content_id) };
+          }
+          return item;
+        })
       );
-    } else if (item.type === 'tweet') {
-      return (
-        <TouchableOpacity style={styles.tweetCard} onPress={() => handleContentPress(item)}>
-          <Image source={{ uri: item.Media_URL }} style={styles.tweetImage} />
-          <Text style={styles.tweetUsername}>{item.Username}</Text>
-          <Text style={styles.tweetDate}>{formatToUTCT(item.Created_At)}</Text>
-          <Text style={styles.tweetText} numberOfLines={3} ellipsizeMode="tail">
-            {item.Tweet}
-          </Text>
-        </TouchableOpacity>
-      );
+
+      setSharedContent(detailedContent);
+    } catch (err) {
+      console.error('Error fetching shared content:', err);
+      setError(err.message || 'Error fetching shared content');
+    } finally {
+      setLoading(false);
     }
-    return null;
-  };
-  const [isButtonVisible, setIsButtonVisible] = useState(true);
-  
-  const handleScroll = (event: any) => {
-    const offsetY = event.nativeEvent.contentOffset.y;
-    setIsButtonVisible(offsetY < 100);
   };
 
-  const handleHomePress = () => {
-    router.push('/home');
+  const fetchArticleContent = async (id) => {
+    try {
+      const response = await fetch(`${domaindynamo}/get-article-by-id`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+
+      if (!response.ok) throw new Error(`Error fetching article: ${response.statusText}`);
+
+      const data = await response.json();
+
+      if (data.status === 'Error') throw new Error(data.error || 'Failed to fetch article content');
+
+      return data.data; // The article data
+    } catch (error) {
+      console.error(`Error in fetchArticleContent: ${error.message}`);
+      return null; // Return null to handle gracefully
+    }
   };
 
-  const handleBookmarkPress = () => {
-    console.log('Bookmark button pressed!');
+  const fetchTweetContent = async (link) => {
+    try {
+      const response = await fetch(`${domaindynamo}/get-tweet-by-link`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ link }),
+      });
+
+      if (!response.ok) throw new Error(`Error fetching tweet: ${response.statusText}`);
+
+      const data = await response.json();
+
+      if (data.status === 'Error') throw new Error(data.error || 'Failed to fetch tweet content');
+
+      return data.data; // The tweet data
+    } catch (error) {
+      console.error(`Error in fetchTweetContent: ${error.message}`);
+      return null; // Return null to handle gracefully
+    }
   };
 
-  const handleAddressBookPress = () => {
-    router.push('/followingPage');
-  };
-
-  const handleSearchPress = () => {
-    console.log('Search button pressed!');
-  };
-
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.push('/settings')} style={styles.settingsIcon}>
-          <Icon name="settings-outline" size={24} color="#888" />
-        </TouchableOpacity>
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#0000ff" />
       </View>
+    );
+  }
 
-      <FlatList
-        data={articlesAndTweets}
-        renderItem={renderContentCard}
-        keyExtractor={(item, index) => `${item.type}-${index}`}
-        contentContainerStyle={styles.contentContainer}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-      />
+  if (error) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.errorText}>Error: {error}</Text>
+      </View>
+    );
+  }
 
-      {isButtonVisible && (
-        <CustomButton
-          barButtons={[
-            { iconName: 'home', onPress: handleHomePress },
-            { iconName: 'bookmark', onPress: handleBookmarkPress },
-            { iconName: 'address-book', onPress: handleAddressBookPress },
-            { iconName: 'search', onPress: handleSearchPress },
-          ]}
-        />
+  const renderItem = ({ item }) => (
+    <View key={item.content_id} style={styles.card}>
+      <Text style={styles.subTitle}>
+        Shared by {item.username} on {new Date(item.shared_at).toLocaleString()}
+      </Text>
+      {item.content_type === 'article' && item.content_data && (
+        <View>
+          <Text style={styles.headline}>{item.content_data.headline}</Text>
+          <Text>{item.content_data.short_description}</Text>
+          <Text>Category: {item.content_data.category}</Text>
+          <Text>Authors: {item.content_data.authors}</Text>
+          <TouchableOpacity onPress={() => Linking.openURL(item.content_data.link)}>
+            <Text style={styles.link}>Read more</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      {item.content_type === 'tweet' && item.content_data && (
+        <View>
+          <Text>{item.content_data.Tweet}</Text>
+          <Text>
+            <Text style={styles.bold}>Retweets:</Text> {item.content_data.Retweets} |{' '}
+            <Text style={styles.bold}>Favorites:</Text> {item.content_data.Favorites}
+          </Text>
+          <Text>
+            <Text style={styles.bold}>Created at:</Text> {new Date(item.content_data.Created_At).toLocaleString()}
+          </Text>
+          <TouchableOpacity onPress={() => Linking.openURL(item.content_data.Tweet_Link)}>
+            <Text style={styles.link}>View tweet</Text>
+          </TouchableOpacity>
+        </View>
       )}
     </View>
   );
+
+  return (
+    <FlatList
+      contentContainerStyle={styles.container}
+      data={sharedContent}
+      keyExtractor={(item) => item.content_id.toString()}
+      renderItem={renderItem}
+      ListEmptyComponent={<Text style={styles.noContent}>No shared content found.</Text>}
+    />
+  );
 };
 
-export default HomePage;
-
-
 const styles = StyleSheet.create({
-  logoImage: {
-    width: 300,
-    height: 100,
-    alignSelf:'center',
-  },
   container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginTop: 40,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-    paddingBottom: 10,
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    flex: 1,
-  },
-  tabButton: {
-    marginHorizontal: 20,
-    paddingBottom: 5,
-  },
-  tabText: {
-    fontSize: 18,
-    color: '#888',
-  },
-  activeTabButton: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#A1A0FE',
-  },
-  activeTabText: {
-    color: '#333',
-    fontWeight: 'bold',
-  },
-  settingsIcon: {
-    position: 'absolute',
-    right: 20,
-  },
-  filterContainer: {
-    marginVertical: 10,
-    alignItems: 'center',
-  },
-  filterScroll: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  categoryWrapper: {
-    flexDirection: 'row',
-  },
-  filterButton: {
-    backgroundColor: '#FFFF',
-    borderRadius: 20,
-    paddingVertical: 5,
-    paddingHorizontal: 15,
-    marginHorizontal: 5,
-    borderWidth: 2, 
-    borderColor: '#E0E0E0',
-  },
-  filterButtonActive: {
-    backgroundColor: '#A1A0FE',
-    borderColor:'#FFFFFF'
-  },
-  filterText: {
-    color: '#000000',
-  },
-  filterTextActive: {
-    color: '#FFFFFF',
-  },
-  contentContainer: {
-    paddingHorizontal: 15,
-  },
-  articleCard: {
-    backgroundColor: '#8A7FDC',
-    borderRadius: 10,
-    marginBottom: 15,
-    padding: 10,
-    alignSelf: 'center',
-    width: 500,
-  },
-  articleTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333333',
-  },
-  articleAuthor: {
-    fontSize: 12,
-    color: '#333333',
-  },
-  articleDate: {
-    fontSize: 12,
-    color: '#333333',
-  },
-  articleDescription: {
-    fontSize: 14,
-    color: '#555555',
-    marginTop: 5,
-  },
-  tweetCard: {
-    backgroundColor: '#2A2B2E',
-    borderRadius: 16,
     padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    overflow: 'hidden',
-    width: 500,
-    alignSelf: 'center',
+    backgroundColor: '#f8f8f8',
   },
-  tweetUsername: {
-    color: '#8A7FDC',
-    fontSize: 18,
-    marginBottom: 4,
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 24,
     fontWeight: 'bold',
+    marginBottom: 16,
   },
-  tweetText: {
-    fontSize: 14,
-    color: '#A9A9A9',
-    lineHeight: 20,
-  },
-  tweetDate: {
-    fontSize: 14,
-    color: '#FFFFFF',
+  subTitle: {
+    fontSize: 16,
     marginBottom: 8,
   },
-  tweetImage: {
-    height: 300,
-    width: 'auto',
-    resizeMode: 'contain',
+  card: {
+        backgroundColor: '#8A7FDC',
+        borderRadius: 10,
+        marginBottom: 5,
+        padding: 10,
+        alignSelf: 'center',
+        width: '95%',
   },
+  headline: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  link: {
+    color: '#007BFF',
+    marginTop: 8,
+  },
+  bold: {
+    fontWeight: 'bold',
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 18,
+  },
+  noContent: {
+    textAlign: 'center',
+    fontSize: 16,
+    color: '#666',
+  },
+
+  backIcon: {
+    marginBottom: 20,
+  },
+  header: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  tweetCard: {
+    backgroundColor: '#000000',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  tweetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  avatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 10,
+  },
+  username: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  timestamp: {
+    fontSize: 12,
+    color: '#CCCCCC',
+  },
+  tweetText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    marginBottom: 10,
+  },
+  media: {
+    width: '100%',
+    height: 200,
+    marginBottom: 10,
+  },
+  stats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  stat: {
+    color: '#CCCCCC',
+    fontSize: 12,
+  },
+  aiExplanationHeader: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  aiExplanationText: {
+    fontSize: 14,
+    color: '#333333',
+    marginBottom: 20,
+  },
+  actionIcons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#A1A0FE',},
 });
+
+export default RepostFeedPage;

@@ -158,7 +158,6 @@ console.log('Request Body:', req.body);
         });
     });
 });
-
 app.post('/add-preference', (req, res) => {
     const { username, preference } = req.body;
     const insertQuery = `INSERT INTO Preferences (username, preference) VALUES (?, ?);`;
@@ -188,7 +187,6 @@ app.post('/check-preferences', (req, res) => {
         }
     });
 });
-
 app.post('/set-username', (req, res) => {
     const { username } = req.body;
 
@@ -205,8 +203,6 @@ app.post('/set-username', (req, res) => {
 
     return res.json({ status: 'Success', message: 'Username set successfully' });
 });
-
-
 app.get('/get-username', (req, res) => {
     if (currentUsername) {
         return res.json({ username: currentUsername });
@@ -284,7 +280,6 @@ app.post('/deactivate-user', (req, res) => {
         }
     });
 });
-
 app.post('/reactivate-user', (req, res) => {
     const { username } = req.body;
 
@@ -306,7 +301,6 @@ app.post('/reactivate-user', (req, res) => {
         }
     });
 });
-
 app.post('/delete-user', (req, res) => {
     const { username } = req.body;
 
@@ -542,7 +536,6 @@ app.post('/get_followed_users', (req, res) => {
     });
 });
 
-
 app.post('/share_articles', (req, res) => {
     const { username, article_id } = req.body;
 
@@ -754,8 +747,115 @@ app.post('/search_content', (req, res) => {
         return res.status(200).json({ status: 'Success', data: results });
     });
 });
+app.post('/comment_article', (req, res) => {
+    const { article_id, username, content, parent_comment_id } = req.body;
 
+    if (!article_id || !username || !content) {
+        return res.status(400).json({ status: 'Error', message: 'article_id, username, and content are required.' });
+    }
 
+    const commentArticleQuery = `
+        INSERT INTO comments (article_id, username, content, parent_comment_id, created_at) 
+        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP);
+    `;
+
+    pool.query(commentArticleQuery, [article_id, username, content, parent_comment_id || null], (err, results) => {
+        if (err) {
+            return res.status(500).json({ status: 'Error', error: err.message });
+        }
+
+        return res.status(201).json({ 
+            status: 'Success', 
+            message: 'Comment successfully added.',
+            data: {
+                comment_id: results.insertId,
+                article_id,
+                username,
+                content,
+                parent_comment_id
+            }
+        });
+    });
+});
+
+app.post('/get_comments_article', (req, res) => {
+    const { article_id } = req.body;
+
+    if (!article_id) {
+        return res.status(400).json({ status: 'Error', message: 'article_id is required.' });
+    }
+
+    const getCommentsArticleQuery = `
+        SELECT c.comment_id, c.article_id, c.username, c.content, c.parent_comment_id, c.created_at
+        FROM comments c
+        WHERE c.article_id = ?
+        ORDER BY c.created_at ASC;
+    `;
+
+    pool.query(getCommentsArticleQuery, [article_id], (err, results) => {
+        if (err) {
+            return res.status(500).json({ status: 'Error', error: err.message });
+        }
+
+        return res.status(200).json({ status: 'Success', data: results });
+    });
+});
+
+app.post('/comment_tweet', (req, res) => {
+    const { tweet_link, username, content, parent_comment_id } = req.body;
+
+    if (!tweet_link || !username || !content) {
+        return res.status(400).json({ status: 'Error', message: 'tweet_link, username, and content are required.' });
+    }
+
+    const commentTweetQuery = `
+        INSERT INTO comments_tweets (tweet_link, username, content, parent_comment_id, created_at) 
+        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP);
+    `;
+
+    pool.query(commentTweetQuery, [tweet_link, username, content, parent_comment_id || null], (err, results) => {
+        if (err) {
+            return res.status(500).json({ status: 'Error', error: err.message });
+        }
+
+        return res.status(201).json({ 
+            status: 'Success', 
+            message: 'Comment successfully added.',
+            data: {
+                comment_id: results.insertId,
+                tweet_link,
+                username,
+                content,
+                parent_comment_id
+            }
+        });
+    });
+});
+
+app.post('/get_comments_tweet', (req, res) => {
+    const { tweet_link } = req.body;
+    console.log('Received link in backend:', tweet_link);
+    if (!tweet_link) {
+        return res.status(400).json({ status: 'Error', message: 'tweet_link is required.' });
+    }
+
+    const getCommentsTweetQuery = `
+        SELECT c.comment_id, c.tweet_link, c.username, c.content, c.parent_comment_id, c.created_at
+        FROM comments_tweets c
+        WHERE c.tweet_link = ?
+        ORDER BY c.created_at ASC;
+    `;
+
+    pool.query(getCommentsTweetQuery, [tweet_link], (err, results) => {
+        if (err) {
+            return res.status(500).json({ status: 'Error', error: err.message });
+        }
+        console.log('Results in backend: ', results);
+        return res.status(200).json({ status: 'Success', data: results });
+    });
+});
+
+  
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

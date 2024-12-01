@@ -9,19 +9,29 @@ import {
   ScrollView,
   Linking,
   Platform,
+  FlatList,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { TextInput } from 'react-native-gesture-handler';
 
 const TweetPage: React.FC = () => {
   const [tweetData, setTweetData] = useState<any>(null);
   const [username, setUsername] = useState('');
+  const [comment, setComment] = useState('');
+  const [allComments, setAllComments] = useState([]);
   const router = useRouter();
 
   useEffect(() => {
     fetchTweetLink();
     fetchUsername();
   }, []);
+
+  useEffect(() => {
+    if (tweetData) {
+      fetchComments();
+    }
+  }, [tweetData]);
 
   const fetchUsername = async () => {
     try {
@@ -113,7 +123,7 @@ const TweetPage: React.FC = () => {
   };
 
   const handleSave = async (tweetLink: string) => {
-    const response = await fetch('localhost:3000/save-tweets',{
+    const response = await fetch('http://localhost:3000/save-tweets',{
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: username, tweet_link: tweetLink }),
@@ -133,6 +143,72 @@ const TweetPage: React.FC = () => {
       }
     }
   };
+
+  const fetchComments = async () => {
+    const response = await fetch('http://localhost:3000/get_comments_tweet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tweet_link : tweetData.Tweet_Link }),
+    })
+
+    const data = await response.json();
+
+    if(response.ok){
+      console.log('comments: ', data.data);
+      setAllComments(data.data);
+    }
+    else{
+      console.log('no comments');
+      setAllComments([]);
+    }
+  }
+
+  const postComment = async (comment : string) => {
+    console.log('Link: ', tweetData.Tweet_Link, 'Username: ', username, 'Content: ', comment);
+    const response = await fetch('http://localhost:3000/comment_tweet', {
+      method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tweet_link: tweetData.Tweet_Link, username: username, content: comment, parent_comment_id: null }),
+    })
+
+    if(response.ok) {
+      if(Platform.OS=='web'){
+        alert('Sucess: Comment has been posted');
+        router.push('/tweetpage');
+      }else{
+        Alert.alert('Sucess','Comment has been posted');
+      }
+    }
+    else
+    {
+      if(Platform.OS=='web'){
+        alert('Error: could not post comment');
+      }else{
+        Alert.alert('Error','Could not post comment');
+      }
+    }
+  }
+
+  const renderCommentCard = ({ item }) => {
+    const formatDate = (isoDate) => {
+      const date = new Date(isoDate);
+      return date.toLocaleString(); // Adjust format as needed
+    };
+  
+    return (
+      <View style={styles.commentCard}>
+        <View style={styles.cardContent}>
+          <Icon name="person" size={30} style={styles.userIcon} />
+          <View style={styles.commentHeader}>
+            <Text style={styles.userName}>{item.username}</Text>
+            <Text style={styles.commentDate}>{formatDate(item.created_at)}</Text>
+          </View>
+        </View>
+        <Text style={styles.commentText}>{item.content}</Text>
+      </View>
+    );
+  };
+  
 
   return (
     <ScrollView style={styles.container}>
@@ -183,15 +259,38 @@ const TweetPage: React.FC = () => {
             <TouchableOpacity onPress={() => handleSave(tweetData.Tweet_Link)}>
               <Icon name="bookmark-outline" size={30} color="#A1A0FE" />
             </TouchableOpacity>
-            <TouchableOpacity>
-              <Icon name="chatbubble-outline" size={30} color="#A1A0FE" />
-            </TouchableOpacity>
             <TouchableOpacity
               onPress={() => handleShare(tweetData.Tweet_Link)}            
             >
               <Icon name="share-outline" size={30} color="#A1A0FE" />
             </TouchableOpacity>
           </View>
+          <View style={styles.commentContainer}>
+          <TextInput
+            style={styles.commentInput}
+            placeholder="Type your comment..."
+            placeholderTextColor="#FFFF00"
+            value={comment}
+            onChangeText={(text) => setComment(text)} // Ensure the input field updates
+          />
+          <TouchableOpacity
+            style={styles.postCommentButton}
+            onPress={() => postComment(comment)}
+          >
+            <Text style={styles.postButtonText}>Post Comment</Text>
+          </TouchableOpacity>
+          <FlatList
+            data={allComments}
+            renderItem={renderCommentCard}
+            keyExtractor={(item) => item.comment_id}
+            contentContainerStyle={styles.commentCard}
+            ListEmptyComponent={
+              <Text style={styles.noComments}>
+                No comments yet. Be the first to comment!
+              </Text>
+            }
+        />
+        </View>
         </>
       ) : (
         <Text style={styles.loadingText}>Loading tweet details...</Text>
@@ -287,6 +386,81 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 50,
   },
+
+  commentContainer: {
+    flex: 1,
+    backgroundColor: '#8a7fdc',
+    paddingHorizontal: 20,
+    paddingTop: 40,
+    width: '95%',
+    marginBottom: 40,
+    paddingBottom: 40,
+  },
+  commentCard: {
+    backgroundColor: '#F7B8D2',
+    width: '98%',
+    marginTop: 20,
+    borderRadius: 15,
+    paddingBottom: 20,
+  },
+  cardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  commentText: {
+    fontSize: 14,
+    color: '#000',
+    textAlign: 'left',
+    marginTop:5,
+    paddingLeft: 25,
+  },
+  commentInput: {
+    flex: 1,
+    height: 40,
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    fontSize: 16,
+    backgroundColor: '#F7B8D2',
+    color: '#000',
+  },
+  postCommentButton: {
+    marginLeft: 10,
+    backgroundColor: '#A1A0FE',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    marginTop: 15,
+  },
+  postButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  userIcon: {
+    marginRight: 10,
+    paddingLeft: 10,
+  },
+  userName: {
+    fontSize: 14,
+    color: '#000000',
+    marginBottom: 5,
+  },
+  noComments: {
+    fontSize: 16,
+    color: '#8a7fdc',
+    fontWeight: 'bold',
+    marginTop: 10,
+    alignSelf: 'center',
+    paddingBottom: 10,
+  },
+  commentDate: {
+    fontSize: 12,
+    color: '#555',
+    marginLeft: 10,
+    textAlign: 'right',
+  },
 });
 
-export default TweetPage;
+export default TweetPage;
