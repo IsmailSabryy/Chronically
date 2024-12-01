@@ -1,7 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, ScrollView, Linking, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  Alert,
+  ScrollView,
+  Linking,
+  Platform,
+  FlatList,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { TextInput } from 'react-native-gesture-handler';
 
 const domaindynamo = Platform.OS === 'web'
   ?  'http://localhost:3000' // Use your local IP address for web
@@ -10,12 +22,20 @@ const domaindynamo = Platform.OS === 'web'
 const TweetPage: React.FC = () => {
   const [tweetData, setTweetData] = useState<any>(null);
   const [username, setUsername] = useState('');
+  const [comment, setComment] = useState('');
+  const [allComments, setAllComments] = useState([]);
   const router = useRouter();
 
   useEffect(() => {
     fetchTweetLink();
     fetchUsername();
   }, []);
+
+  useEffect(() => {
+    if (tweetData) {
+      fetchComments();
+    }
+  }, [tweetData]);
 
   const fetchUsername = async () => {
     try {
@@ -24,7 +44,7 @@ const TweetPage: React.FC = () => {
       if (data.username) {
         setUsername(data.username);
       } else {
-        setUsername('Guest');
+        setUsername('');
       }
     } catch (error) {
       console.error('Error fetching username:', error);
@@ -66,53 +86,31 @@ const TweetPage: React.FC = () => {
     }
   };
 
-  const fetchSharedContent = async () => {
-    try {
-      // Fetch the username dynamically
-      const response = await fetch(`${domaindynamo}/get-username`);
-      const data = await response.json();
-      const username = data.username || 'Guest'; // Use 'Guest' if no username is found
-
-      // Use the fetched username in your shared content logic
-      if (username !== '') {
-        // Proceed with fetching shared content or performing actions using username
-        const sharedResponse = await fetch(`${domaindynamo}/fetch-shared-content`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username }),
-        });
-
-        const sharedData = await sharedResponse.json();
-        if (sharedData.success) {
-          // Process the shared data
-          console.log('Shared content fetched successfully');
-          // Do something with sharedData...
-        } else {
-          console.error('Failed to fetch shared content');
-        }
-      } else {
-        console.error('Username not found');
-      }
-    } catch (error) {
-      console.error('Error fetching shared content:', error);
-    }
-  };
-
-  const handleShare = async (tweetLink: string) => {
-    if (username !== '') {
+  const handleShare = async (tweetLink:string) => {
+    if(username != ''){
       try {
-        await fetch(`${domaindynamo}/share_tweets`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            username: username,
-            tweet_link: tweetLink,
-          }),
-        });
-        if (Platform.OS === 'web') {
-          alert('Tweet shared successfully!');
+        const response = await fetch(`${domaindynamo}/get-username`);
+        const data = await response.json();
+        if (data.username) {
+          await fetch(`${domaindynamo}/share_tweets`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              username: data.username,
+              tweet_link: tweetLink,
+            }),
+          });
+          if(Platform.OS=='web'){
+            alert('Tweet shared successfully!');
+          }else{
+            Alert.alert('Success','Tweet shared successfully!');
+          }
         } else {
-          Alert.alert('Success', 'Tweet shared successfully!');
+          if(Platform.OS=='web'){
+            alert('Unable to share tweet');
+          }else{
+            Alert.alert('Error','Unable to share tweet');
+          }
         }
       } catch (error) {
         console.error('Error sharing article', error);
@@ -120,6 +118,7 @@ const TweetPage: React.FC = () => {
       }
     }
   };
+  
 
   const handleMediaPress = (tweetLink: string) => {
     Linking.openURL(tweetLink).catch((err) =>
@@ -128,46 +127,92 @@ const TweetPage: React.FC = () => {
   };
 
   const handleSave = async (tweetLink: string) => {
-    if (username !== '') {
-      try {
-        const response = await fetch(`${domaindynamo}/save-tweets`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            username: username,
-            tweet_link: tweetLink,
-          }),
-        });
+    const response = await fetch(`${domaindynamo}/save-tweets`,{
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: username, tweet_link: tweetLink }),
+    });
 
-        if (response.ok) {
-          if (Platform.OS === 'web') {
-            alert('Tweet saved successfully!');
-          } else {
-            Alert.alert('Success', 'Tweet saved successfully!');
-          }
-        } else {
-          if (Platform.OS === 'web') {
-            alert('Error: Tweet could not be saved');
-          } else {
-            Alert.alert('Error', 'Tweet could not be saved');
-          }
-        }
-      } catch (error) {
-        console.error('Error saving tweet', error);
-        if (Platform.OS === 'web') {
-          alert('Error: Unable to save tweet');
-        } else {
-          Alert.alert('Error', 'Unable to save tweet');
-        }
+    if(response.ok){
+      if(Platform.OS=='web'){
+        alert('Tweet saved successfully!');
+      }else{
+        Alert.alert('Success','Tweet saved successfully!');
       }
-    } else {
-      if (Platform.OS === 'web') {
-        alert('Please log in to save tweets');
-      } else {
-        Alert.alert('Error', 'Please log in to save tweets');
+    }else{
+      if(Platform.OS=='web'){
+        alert('Error: Tweet could not be saved');
+      }else{
+        Alert.alert('Error','Tweet could not be saved');
       }
     }
   };
+
+  const fetchComments = async () => {
+    const response = await fetch(`${domaindynamo}/get_comments_tweet`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tweet_link : tweetData.Tweet_Link }),
+    })
+
+    const data = await response.json();
+
+    if(response.ok){
+      console.log('comments: ', data.data);
+      setAllComments(data.data);
+    }
+    else{
+      console.log('no comments');
+      setAllComments([]);
+    }
+  }
+
+  const postComment = async (comment : string) => {
+    console.log('Link: ', tweetData.Tweet_Link, 'Username: ', username, 'Content: ', comment);
+    const response = await fetch(`${domaindynamo}/comment_tweet`, {
+      method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tweet_link: tweetData.Tweet_Link, username: username, content: comment, parent_comment_id: null }),
+    })
+
+    if(response.ok) {
+      if(Platform.OS=='web'){
+        alert('Sucess: Comment has been posted');
+        router.push('/tweetpage');
+      }else{
+        Alert.alert('Sucess','Comment has been posted');
+      }
+    }
+    else
+    {
+      if(Platform.OS=='web'){
+        alert('Error: could not post comment');
+      }else{
+        Alert.alert('Error','Could not post comment');
+      }
+    }
+  }
+
+  const renderCommentCard = ({ item }) => {
+    const formatDate = (isoDate) => {
+      const date = new Date(isoDate);
+      return date.toLocaleString(); // Adjust format as needed
+    };
+  
+    return (
+      <View style={styles.commentCard}>
+        <View style={styles.cardContent}>
+          <Icon name="person" size={30} style={styles.userIcon} />
+          <View style={styles.commentHeader}>
+            <Text style={styles.userName}>{item.username}</Text>
+            <Text style={styles.commentDate}>{formatDate(item.created_at)}</Text>
+          </View>
+        </View>
+        <Text style={styles.commentText}>{item.content}</Text>
+      </View>
+    );
+  };
+  
 
   return (
     <ScrollView style={styles.container}>
@@ -218,15 +263,38 @@ const TweetPage: React.FC = () => {
             <TouchableOpacity onPress={() => handleSave(tweetData.Tweet_Link)}>
               <Icon name="bookmark-outline" size={30} color="#A1A0FE" />
             </TouchableOpacity>
-            <TouchableOpacity>
-              <Icon name="chatbubble-outline" size={30} color="#A1A0FE" />
-            </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => handleShare(tweetData.Tweet_Link)}
+              onPress={() => handleShare(tweetData.Tweet_Link)}            
             >
               <Icon name="share-outline" size={30} color="#A1A0FE" />
             </TouchableOpacity>
           </View>
+          <View style={styles.commentContainer}>
+          <TextInput
+            style={styles.commentInput}
+            placeholder="Type your comment..."
+            placeholderTextColor="#FFFF00"
+            value={comment}
+            onChangeText={(text) => setComment(text)} // Ensure the input field updates
+          />
+          <TouchableOpacity
+            style={styles.postCommentButton}
+            onPress={() => postComment(comment)}
+          >
+            <Text style={styles.postButtonText}>Post Comment</Text>
+          </TouchableOpacity>
+          <FlatList
+            data={allComments}
+            renderItem={renderCommentCard}
+            keyExtractor={(item) => item.comment_id}
+            contentContainerStyle={styles.commentCard}
+            ListEmptyComponent={
+              <Text style={styles.noComments}>
+                No comments yet. Be the first to comment!
+              </Text>
+            }
+        />
+        </View>
         </>
       ) : (
         <Text style={styles.loadingText}>Loading tweet details...</Text>
@@ -251,7 +319,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   tweetCard: {
-    backgroundColor: '#000000',
+    backgroundColor: '#000000', // Black background for the tweet
     borderRadius: 10,
     padding: 15,
     marginBottom: 20,
@@ -275,29 +343,31 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#FFFFFF', // Set username color to white
   },
   timestamp: {
     fontSize: 12,
-    color: '#CCCCCC',
+    color: '#CCCCCC', // Use a lighter gray for better contrast
   },
   tweetText: {
     fontSize: 16,
-    color: '#FFFFFF',
+    color: '#FFFFFF', // Set tweet text color to white
     marginBottom: 10,
   },
   media: {
     width: '100%',
     height: 200,
-    marginBottom: 10,
+    marginTop: 10,
+    borderRadius: 10,
   },
   stats: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginTop: 10,
   },
   stat: {
+    fontSize: 14,
     color: '#CCCCCC',
-    fontSize: 12,
   },
   aiExplanationHeader: {
     fontSize: 18,
@@ -306,16 +376,94 @@ const styles = StyleSheet.create({
   },
   aiExplanationText: {
     fontSize: 14,
-    color: '#333333',
+    color: '#555',
     marginBottom: 20,
   },
   actionIcons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
+    marginTop: 20,
   },
   loadingText: {
     fontSize: 16,
-    color: '#A1A0FE',
+    color: '#777',
+    textAlign: 'center',
+    marginTop: 50,
+  },
+
+  commentContainer: {
+    flex: 1,
+    backgroundColor: '#8a7fdc',
+    paddingHorizontal: 20,
+    paddingTop: 40,
+    width: '95%',
+    marginBottom: 40,
+    paddingBottom: 40,
+  },
+  commentCard: {
+    backgroundColor: '#F7B8D2',
+    width: '98%',
+    marginTop: 20,
+    borderRadius: 15,
+    paddingBottom: 20,
+  },
+  cardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  commentText: {
+    fontSize: 14,
+    color: '#000',
+    textAlign: 'left',
+    marginTop:5,
+    paddingLeft: 25,
+  },
+  commentInput: {
+    flex: 1,
+    height: 40,
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    fontSize: 16,
+    backgroundColor: '#F7B8D2',
+    color: '#000',
+  },
+  postCommentButton: {
+    marginLeft: 10,
+    backgroundColor: '#A1A0FE',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    marginTop: 15,
+  },
+  postButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  userIcon: {
+    marginRight: 10,
+    paddingLeft: 10,
+  },
+  userName: {
+    fontSize: 14,
+    color: '#000000',
+    marginBottom: 5,
+  },
+  noComments: {
+    fontSize: 16,
+    color: '#8a7fdc',
+    fontWeight: 'bold',
+    marginTop: 10,
+    alignSelf: 'center',
+    paddingBottom: 10,
+  },
+  commentDate: {
+    fontSize: 12,
+    color: '#555',
+    marginLeft: 10,
+    textAlign: 'right',
   },
 });
 
