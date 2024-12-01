@@ -208,7 +208,7 @@ const FollowingPage: React.FC = () => {
   };
 
   const handleSearchPress = () => {
-    router.push('/searchPage');
+    router.push('./searchPage');
   };
 
 return (
