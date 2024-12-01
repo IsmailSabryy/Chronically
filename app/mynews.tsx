@@ -28,7 +28,7 @@ const HomePage: React.FC = () => {
 
 const domaindynamo = Platform.OS === 'web'
   ?  'http://localhost:3000' // Use your local IP address for web
-  : 'http://192.168.100.187:3000';       // Use localhost for mobile emulator or device
+  : 'http://10.40.52.159:3000';       // Use localhost for mobile emulator or device
 
 
   const formatToUTCA = (isoDate: string) => {
@@ -223,6 +223,7 @@ const domaindynamo = Platform.OS === 'web'
   };
 
   const handleSearchPress = () => {
+      router.push('/searchPage');
     console.log('Search button pressed!');
   };
 
@@ -408,7 +409,7 @@ const domaindynamo = Platform.OS === 'web'
       marginBottom: 5,
       padding: 10,
       alignSelf: 'center',
-      width: '98%',
+      width: 500,
     },
     articleTitle: {
       fontSize: 16,
@@ -438,7 +439,7 @@ const domaindynamo = Platform.OS === 'web'
       shadowRadius: 8,
       shadowOffset: { width: 0, height: 4 },
       overflow: 'hidden',
-      width: '98%',
+      width: 500,
       alignSelf: 'center',
     },
     tweetUsername: {
