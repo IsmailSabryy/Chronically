@@ -18,7 +18,7 @@ const FollowingPage: React.FC = () => {
 
   const domaindynamo = Platform.OS === 'web'
     ?  'http://localhost:3000' // Use your local IP address for web
-    : 'http://192.168.100.187:3000';       // Use localhost for mobile emulator or device
+    : 'http://10.40.52.159:3000';       // Use localhost for mobile emulator or device
 
   useEffect(() => {
     fetchUsername();
