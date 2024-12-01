@@ -9,14 +9,14 @@ import {
   Linking,
   Platform,
   FlatList,
-  TextInput
+  TextInput,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 const domaindynamo = Platform.OS === 'web'
   ?  'http://localhost:3000' // Use your local IP address for web
-  : 'http://192.168.100.187:3000';       // Use localhost for mobile emulator or device
+  : 'http://10.40.52.159:3000';       // Use localhost for mobile emulator or device
 
 const ArticlePage: React.FC = () => {
   const [articleData, setArticleData] = useState<any>(null);
@@ -163,7 +163,7 @@ const formatToUTCA = (isoDate: string) => {
   const handleLike = () => {
     Alert.alert('Liked', 'You liked this article!');
   };
-  
+
   //article share old
   const handleShare = async () => {
     try {
@@ -312,7 +312,7 @@ const renderCommentCard = ({ item }) => {
       </View>
   );
 };
-  
+
   return (
     <ScrollView style={styles.container}>
       <TouchableOpacity style={styles.backIcon} onPress={() => router.back()}>
@@ -376,7 +376,7 @@ const renderCommentCard = ({ item }) => {
         />
         </View>
         </View>
-        
+
       ) : (
         <Text style={styles.loadingText}>Loading article details...</Text>
       )}
